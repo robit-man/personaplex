@@ -1,273 +1,120 @@
-# PersonaPlex Voice Cloning System
+# PersonaPlex
 
-> **Single Point of Entry** - Automated setup and deployment for NVIDIA's PersonaPlex voice cloning
+Full-duplex voice AI with native 2-bit quantization, voice cloning, and a minimal dark UI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![HuggingFace](https://img.shields.io/badge/🤗-Weights-yellow)](https://huggingface.co/nvidia/personaplex-7b-v1)
+[![HuggingFace](https://img.shields.io/badge/🤗-TurboQuant_2bit-yellow)](https://huggingface.co/cudabenchmarktest/personaplex-7b-turbo2bit)
+[![HuggingFace](https://img.shields.io/badge/🤗-NF4-blue)](https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4)
 
-## 🚀 Quick Start
+## What's Different
 
-### Prerequisites
+This is a heavily modified fork of [NVIDIA PersonaPlex](https://github.com/NVIDIA/personaplex) with:
 
-- **Python 3.10+** with venv
-- **Node.js 18+** (for frontend)
-- **Cloudflare CLI** (`cloudflared`) for tunnel
-- **SSH client** (for localhost.run tunnel)
-- **HuggingFace Token** (optional if models pre-downloaded)
+- **Native 2-bit inference** — `Linear2bit` module keeps NF2+WHT packed weights on GPU (~10GB peak vs 19GB bf16)
+- **Custom frontend** — dark grey (#1a1a1a) + amber (#ffae00) accent, mobile-friendly, no call-center presets
+- **Ollama prompt expander** — type a snippet, select any local Ollama model, expand into a full persona prompt
+- **Voice cloning** — press-and-hold recording + file upload → clone pipeline with optional LuxTTS synthetic generation
+- **Hot-restart weight tiers** — switch between bf16/nf4/turbo2bit from the UI, server restarts without killing the tunnel
+- **CPU Mimi codec** — offload audio encoder/decoder to CPU, saves ~840MB VRAM
+- **Dynamic voice list** — `/api/voices` endpoint, custom voices appear first
+- **Server-side Ollama proxy** — no CORS issues on tunneled connections
 
-### Installation
+## VRAM Comparison
+
+| Configuration | Peak VRAM | Download |
+|--------------|-----------|----------|
+| BF16 (original) | ~19 GB | 15.6 GB |
+| NF4 (INT4) | ~19 GB | 4.1 GB |
+| **TurboQuant 2-bit (native)** | **~10 GB** | **2.1 GB** |
+| + CPU Mimi | saves 840 MB | — |
+
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/roko/PersonaPlex.git
-cd PersonaPlex
+git clone https://github.com/robit-man/personaplex.git
+cd personaplex
 
-# Install dependencies (handled by run.sh)
-chmod +x run.sh
-```
-
-### Run
-
-```bash
-# Start everything (server + Cloudflare tunnel) with full model
-export HF_TOKEN=your_huggingface_token  # Optional if models already downloaded
+# Full bf16 model
+export HF_TOKEN=your_token
 ./run.sh start
 
-# Start with NF4 quantized model (smaller, faster)
-./run.sh start-nf4
-
-# Start with 2-bit TurboQuant model (smallest, fastest download)
+# Native 2-bit (~10GB VRAM, no HF token needed)
 ./run.sh start-turbo2bit
+
+# Or use start_server.sh directly
+cd personaplex-setup
+./start_server.sh native-2bit
 ```
 
-**That's it!** The script handles:
-- ✅ PersonaPlex server startup
-- ✅ Cloudflare tunnel for public access
-- ✅ localhost.run SSH tunnel (alternative tunneling)
-- ✅ Auto-detection of downloaded models
-- ✅ Support for full bf16, NF4 quantized, and 2-bit TurboQuant models
-- ✅ Automatic dequantization of 2-bit models to bf16 on load
-- ✅ API documentation display
-
-## 📋 Commands
+## Server Modes
 
 ```bash
-./run.sh start             # Start server + Cloudflare tunnel (full bf16 model)
-./run.sh start-nf4         # Start server + Cloudflare tunnel (NF4 quantized model)
-./run.sh start-turbo2bit   # Start server + Cloudflare tunnel (2-bit TurboQuant model)
-./run.sh server-only       # Start server only (localhost)
-./run.sh tunnel-only       # Start Cloudflare tunnel only
-./run.sh ssh-tunnel        # Start localhost.run SSH tunnel only
-./run.sh api-docs          # Show API documentation
-./run.sh status            # Check system status
-./run.sh stop              # Stop all services
-./run.sh switch-model      # Switch between full and nf4 models
+./start_server.sh bf16          # Full quality (~19GB VRAM)
+./start_server.sh 2bit          # 2-bit download, dequant at load (~19GB)
+./start_server.sh native-2bit   # Native 2-bit on GPU (~10GB peak)
+./start_server.sh cpu-offload   # Split model across GPU+CPU
 ```
 
-## 🔧 Configuration
+## API Endpoints
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HF_TOKEN` | - | HuggingFace API token |
-| `PERSONAPLEX_PORT` | 8998 | Server port |
-| `PERSONAPLEX_TUNNEL_NAME` | personaplex-voice | Cloudflare tunnel name |
-| `PERSONAPLEX_MODEL_TYPE` | full | Model type: `full`, `nf4`, or `turbo2bit` |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chat` | WebSocket | Full-duplex voice conversation |
+| `/api/voices` | GET | List available voices (custom first) |
+| `/api/clone` | POST | Upload WAV → clone voice embedding |
+| `/api/clone-pipeline` | POST | Full pipeline: record → LuxTTS synth → PersonaPlex clone |
+| `/api/clone-pipeline/{id}` | GET | Poll clone pipeline progress |
+| `/api/status` | GET | Current tier, device, port |
+| `/api/restart` | POST | Hot-restart with different weight tier |
+| `/api/ollama/tags` | GET | Proxy: list Ollama models |
+| `/api/ollama/generate` | POST | Proxy: generate with Ollama |
 
-## 🎯 Model Options
+## Frontend
 
-### Full Model (bf16)
-- **Repository**: `nvidia/personaplex-7b-v1`
-- **Size**: ~15.59 GB
-- **Best for**: Desktop GPUs with 16GB+ VRAM
-- **Command**: `./run.sh start`
+Minimal dark UI with amber accents:
+- Custom voices at top of dropdown
+- Ollama-powered prompt expander (select any local model)
+- Settings panel: weight tier selector, Ollama model picker, voice cloning
+- Press-and-hold voice recording for cloning
+- LuxTTS synthetic data generation toggle
+- Pipeline progress bar
+- Transparent canvas audio visualizers
+- Mobile-friendly (no pinch zoom, 16px inputs)
 
-### NF4 Quantized Model (INT4)
-- **Repository**: `cudabenchmarktest/personaplex-7b-nf4`
-- **Size**: ~4.14 GB (3.8x smaller)
-- **Best for**: Edge devices, Jetson AGX Orin, 8GB VRAM GPUs
-- **Command**: `./run.sh start-nf4`
+## Voice Cloning
 
-### 2-bit TurboQuant Model (NF2+WHT)
-- **Repository**: `personaplex-7b-turbo2bit`
-- **Size**: ~1.86 GB (8.4x smaller than full)
-- **Dequantized Size**: ~16.6 GB (matches full bf16 on GPU)
-- **Best for**: Fast downloads, edge deployment with 16GB+ VRAM
-- **Command**: `./run.sh start-turbo2bit`
-- **Features**: 
-  - Automatic dequantization on load via Walsh-Hadamard Transform
-  - NF2 centroids for optimal 2-bit quantization
-  - Verified to match full bf16 model performance
+Two paths:
+1. **Direct clone** — upload or record audio → PersonaPlex extracts voice embedding
+2. **LuxTTS pipeline** — upload short sample → LuxTTS generates synthetic training data → PersonaPlex clones from the richer dataset
 
-### Switch Between Models
-```bash
-# Toggle between models
-./run.sh switch-model
+## Quantized Model Repos
 
-# Or set environment variable
-export PERSONAPLEX_MODEL_TYPE=nf4  # or 'full' or 'turbo2bit'
-./run.sh start
-```
+- **TurboQuant 2-bit**: [cudabenchmarktest/personaplex-7b-turbo2bit](https://huggingface.co/cudabenchmarktest/personaplex-7b-turbo2bit) — 2.1 GB, native inference via `linear2bit.py`
+- **NF4 INT4**: [cudabenchmarktest/personaplex-7b-nf4](https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4) — 4.1 GB
+- **Original**: [nvidia/personaplex-7b-v1](https://huggingface.co/nvidia/personaplex-7b-v1) — 15.6 GB (requires HF token)
 
-## 🌐 Tunneling Options
-
-### Cloudflare Tunnel
-- **URL Format**: `https://xxxxx.trycloudflare.com`
-- **Pros**: Fast, reliable, no account needed
-- **Command**: `./run.sh tunnel-only`
-
-### localhost.run SSH Tunnel
-- **URL Format**: `https://xxxxx.lhr.life`
-- **Pros**: Alternative tunneling, SSH-based
-- **Command**: `./run.sh ssh-tunnel`
-
-### Use Both
-```bash
-# Start server with both tunnels
-./run.sh start
-```
-
-## 📚 API Endpoints
-
-Once running, access these endpoints via the tunnel URL:
-
-### Clone Voice
-```bash
-POST /api/clone
-Content-Type: application/json
-
-{
-  "voice_name": "my_voice",
-  "audio_file": "<base64_encoded_audio>"
-}
-```
-
-### List Voices
-```bash
-GET /api/voices
-```
-
-### Generate Speech
-```bash
-POST /api/generate
-Content-Type: application/json
-
-{
-  "text": "Hello, world!",
-  "voice_name": "my_voice"
-}
-```
-
-### Check Status
-```bash
-GET /api/status
-```
-
-## 🎯 First-Time Setup
-
-If you don't have models downloaded yet:
-
-1. **Get HuggingFace Token**: https://huggingface.co/settings/tokens
-2. **Accept License**: https://huggingface.co/nvidia/personaplex-7b-v1
-3. **Run with token**:
-   ```bash
-   export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-   ./run.sh start
-   ```
-
-The script will automatically download models on first run.
-
-### Using NF4 Quantized Model (Recommended for Edge)
-
-```bash
-# Set model type to nf4
-export PERSONAPLEX_MODEL_TYPE=nf4
-export HF_TOKEN=your_token
-./run.sh start
-
-# Or use the shortcut command
-./run.sh start-nf4
-```
-
-## 🛠️ Troubleshooting
-
-### Models not found
-```bash
-# Check if models exist
-find models -name "*.safetensors"
-
-# If missing, set HF_TOKEN and restart
-export HF_TOKEN=your_token
-./run.sh start
-```
-
-### Port already in use
-```bash
-# Change port
-export PERSONAPLEX_PORT=9999
-./run.sh start
-```
-
-### Cloudflare tunnel issues
-```bash
-# Check if cloudflared is installed
-cloudflared --version
-
-# Install if needed
-curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.tar.gz | tar xz
-sudo mv cloudflared /usr/local/bin/
-```
-
-### SSH tunnel issues
-```bash
-# Check if ssh is installed
-ssh -V
-
-# Install if needed (Ubuntu/Debian)
-sudo apt install openssh-client
-
-# Install if needed (Fedora)
-sudo dnf install openssh-clients
-```
-
-### Check system status
-```bash
-./run.sh status
-```
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-PersonaPlex/
-├── run.sh                 # Main automation script
-├── models/                # Downloaded models
-│   ├── nvidia/personaplex-7b-v1/     # Full bf16 model
-│   └── cudabenchmarktest/personaplex-7b-nf4/  # NF4 quantized model
-├── personaplex-setup/     # PersonaPlex core (submodule)
-│   ├── moshi/            # Moshi server
-│   ├── client/           # Frontend
-│   └── start_server.sh   # Server startup
-├── .gitignore
-└── README.md
+personaplex/
+├── run.sh                      # Main launcher
+├── personaplex-setup/          # Core server + frontend
+│   ├── moshi/moshi/
+│   │   ├── server.py           # WebSocket server + REST API
+│   │   ├── models/loaders.py   # 2-bit dequant in model loading
+│   │   └── modules/
+│   │       └── linear2bit.py   # Native 2-bit Linear module
+│   ├── client/                 # React frontend (Tailwind + Vite)
+│   ├── voices/personaplex/     # Voice cloning tools
+│   │   ├── clone-voice.py
+│   │   ├── dequant-loader.py
+│   │   └── quantize-weights.py
+│   └── start_server.sh         # 4-mode server launcher
+└── models/                     # Local model checkpoints
 ```
 
-## 🔗 Resources
+## License
 
-- **Original Repo**: https://github.com/NVIDIA/PersonaPlex
-- **HuggingFace Models**:
-  - Full: https://huggingface.co/nvidia/personaplex-7b-v1
-  - NF4: https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4
-- **Research Paper**: https://research.nvidia.com/labs/adlr/files/personaplex/personaplex_preprint.pdf
-- **Demo**: https://research.nvidia.com/labs/adlr/personaplex/
-- **localhost.run**: https://localhost.run
+MIT — same as base PersonaPlex model.
 
-## 📄 License
-
-MIT License - See LICENSE file for details
-
-## 🤝 Contributing
-
-Issues and pull requests welcome! This is a community automation wrapper around NVIDIA's PersonaPlex.
-
----
-
-**Made with ❤️ for the voice cloning community**
+Built on [NVIDIA PersonaPlex](https://research.nvidia.com/labs/adlr/personaplex/) by the [open-agents](https://github.com/open-agents-ai) team.
