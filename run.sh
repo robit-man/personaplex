@@ -182,7 +182,7 @@ start_server() {
     export PERSONAPLEX_MODEL_PATH="$CURRENT_MODEL_DIR"
     
     # Start server in background
-    nohup python3 -m moshi.server > server.log 2>&1 &
+    nohup "$SCRIPT_DIR/.venv/bin/python" -m moshi.server > server.log 2>&1 &
     SERVER_PID=$!
     
     echo -e "${GREEN}✓ Server started (PID: $SERVER_PID)${NC}"
@@ -448,6 +448,7 @@ case "${1:-start}" in
     
     start-nf4)
         export PERSONAPLEX_MODEL_TYPE="nf4"
+        export MODEL_TYPE="nf4"
         show_model_info
         download_models
         start_server
