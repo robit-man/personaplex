@@ -25,16 +25,26 @@ export HF_TOKEN="${HF_TOKEN:-}"
 SERVER_PORT="${PERSONAPLEX_PORT:-8998}"
 TUNNEL_NAME="${PERSONAPLEX_TUNNEL_NAME:-personaplex-voice}"
 
-# Check for HF_TOKEN
+# Check for HF_TOKEN (optional if models already downloaded)
 if [ -z "$HF_TOKEN" ]; then
-    echo -e "${RED}Error: HF_TOKEN environment variable is not set.${NC}"
-    echo "Please run: export HF_TOKEN=your_huggingface_token"
-    echo "Get your token from: https://huggingface.co/settings/tokens"
-    echo "Also make sure you've accepted the license at: https://huggingface.co/nvidia/personaplex-7b-v1"
-    exit 1
+    echo -e "${YELLOW}⚠ HF_TOKEN not set - checking if models are already downloaded...${NC}"
+    
+    # Check if models directory exists with safetensors files
+    if [ -d "personaplex-setup/models" ] && find personaplex-setup/models -name "*.safetensors" -type f 2>/dev/null | head -1 > /dev/null; then
+        echo -e "${GREEN}✓ Models already downloaded - skipping HuggingFace authentication${NC}"
+    else
+        echo -e "${YELLOW}⚠ Models not found - HF_TOKEN recommended for first-time setup${NC}"
+        echo "   Set HF_TOKEN to download models automatically:"
+        echo "   export HF_TOKEN=your_huggingface_token"
+        echo "   Get token from: https://huggingface.co/settings/tokens"
+        echo "   Accept license at: https://huggingface.co/nvidia/personaplex-7b-v1"
+        echo ""
+        echo -e "${YELLOW}   Continuing without HF_TOKEN - models must be pre-downloaded...${NC}"
+        sleep 2
+    fi
+else
+    echo -e "${GREEN}✓ HuggingFace token configured${NC}"
 fi
-
-echo -e "${GREEN}✓ HuggingFace token configured${NC}"
 
 # Function to start the server
 start_server() {

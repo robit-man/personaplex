@@ -1,0 +1,38 @@
+# Node modules
+node_modules/
+
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Open Agent internal files
+.oa/
+
+# Logs
+*.log
+server.log
+tunnel.log
+
+# Environment variables
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+dist/
+build/
+
+# PersonaPlex submodule (git handles this)
+personaplex-setup/
+
+# But keep the submodule directory structure
+!personaplex-setup/.git
+
