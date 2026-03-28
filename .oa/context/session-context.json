@@ -1,0 +1,48 @@
+{
+  "entries": [
+    {
+      "savedAt": "2026-03-27T21:15:35.784Z",
+      "task": "lets get personaplex installed here and test it!",
+      "summary": "PersonaPlex installation is complete! Here's the status:\n\n✅ **Completed:**\n- Cloned personaplex-setup repository\n- Installed libopus-dev system dependency\n- Created Python venv with all dependencies\n- Installed moshi-personaplex package\n\n🔐 **Required: HuggingFace Authentication**\nThe model is gated. You need to:\n1. Accept license at: https://huggingface.co/nvidia/personaplex-7b-v1\n2. Get token from: https://huggingface.co/settings/tokens\n3. Run: `cd personaplex-setup && source venv/bin/activate",
+      "filesModified": [
+        "personaplex-setup/INSTALLATION_NOTES.md"
+      ],
+      "toolCalls": 30,
+      "completed": true,
+      "model": "open-agents-qwen35-27b"
+    },
+    {
+      "savedAt": "2026-03-27T21:24:52.301Z",
+      "task": "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",
+      "summary": "✅ **PersonaPlex server is now running successfully!**\n\n**What was done:**\n1. Authenticated with HuggingFace using the provided token `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`\n2. Started the moshi.server with SSL certificate generation\n3. Server loaded mimi, moshi model, and warmed up successfully\n\n**Server Status:**\n- 🟢 Running at: `https://192.168.1.52:8998`\n- Model: nvidia/personaplex-7b-v1\n- Memory usage: ~2GB\n- Certificate auto-generated via mkcert\n\n**Access the Web UI:** Open your browser to",
+      "filesModified": [],
+      "toolCalls": 26,
+      "completed": true,
+      "model": "open-agents-qwen35-27b"
+    },
+    {
+      "savedAt": "2026-03-27T23:18:56.099Z",
+      "task": "needs to be http so we can forward it using cloudflared tunnel --url http://192.168.1.52:8998/",
+      "summary": "✅ **PersonaPlex server is now running on HTTP!**\n\n**What was done:**\n1. Modified `start_server.sh` to remove SSL/HTTPS (removed `--ssl` flag)\n2. Started the server using the venv Python environment\n3. Server is now accessible at **http://192.168.1.52:8998**\n\n**For cloudflared tunnel:**\n```bash\ncloudflared tunnel --url http://192.168.1.52:8998/\n```\n\n**Voice Cloning/Customization:**\nThe current PersonaPlex setup uses NVIDIA's Moshi model which supports voice prompts from the `voices` directory. To",
+      "filesModified": [
+        "/home/roko/Documents/Projects/Adjacent/persona_test/personaplex-setup/start_server.sh"
+      ],
+      "toolCalls": 21,
+      "completed": true,
+      "model": "open-agents-qwen35-27b"
+    },
+    {
+      "savedAt": "2026-03-28T00:03:00.215Z",
+      "task": "whats the cloudflare tunnel we got, if it is fucked restart it and actually tell me the address they give us back, it sometimes takes a second, and secondarily, please put https://static.wikia.nocookie.net/half-life/images/5/56/Over_inne.wav/revision/latest?cb=20230315012726&path-prefix=en as the adownloaded audio you clone, then start",
+      "summary": "✅ **PersonaPlex Voice Cloning System is LIVE!**\n\n**🌐 Cloudflare Tunnel URL:**\n```\nhttps://edition-martha-observe-attached.trycloudflare.com\n```\n\n**🎵 Voice Cloning Setup:**\n- Half-Life \"Over in the\" audio downloaded: `half_life_over.wav` (3.6MB)\n- Added to voice options in the UI\n- Server running on port 8998 (HTTP mode for cloudflared)\n\n**📋 Status:**\n- ✅ Cloudflare tunnel active and forwarding traffic\n- ✅ PersonaPlex server loaded (mimi + moshi models)\n- ✅ Web UI accessible via tunnel URL\n- ✅",
+      "filesModified": [
+        "personaplex-setup/client/src/pages/Queue/Queue.tsx"
+      ],
+      "toolCalls": 130,
+      "completed": true,
+      "model": "open-agents-qwen35-27b"
+    }
+  ],
+  "maxEntries": 20,
+  "updatedAt": "2026-03-28T00:03:00.215Z"
+}

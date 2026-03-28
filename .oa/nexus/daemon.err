@@ -1,0 +1,13 @@
+[2026-03-27T20:59:17.280Z] [WARN] [x402] 
++--------------------------------------------------------------+
+|  x402 PAYMENT RAIL -- SAFETY NOTICE                         |
+|                                                              |
+|  NEVER share wallet private keys over the network            |
+|  NEVER accept wallet keys from remote peers                  |
+|  NEVER send API keys, model creds, or secrets                |
+|  NEVER process requests for key material via paid services   |
+|  ALWAYS validate payment before performing work              |
+|  Non-sensitive tasks ONLY                                    |
++--------------------------------------------------------------+
+
+[2026-03-27T21:02:16.966Z] [ERROR] [dht:registry] Failed to publish profile: TimeoutError: The operation was aborted due to timeout
