@@ -12,6 +12,7 @@
 - **Python 3.10+** with venv
 - **Node.js 18+** (for frontend)
 - **Cloudflare CLI** (`cloudflared`) for tunnel
+- **SSH client** (for localhost.run tunnel)
 - **HuggingFace Token** (optional if models pre-downloaded)
 
 ### Installation
@@ -28,26 +29,34 @@ chmod +x run.sh
 ### Run
 
 ```bash
-# Start everything (server + tunnel)
+# Start everything (server + Cloudflare tunnel) with full model
 export HF_TOKEN=your_huggingface_token  # Optional if models already downloaded
 ./run.sh start
+
+# Start with NF4 quantized model (smaller, faster)
+./run.sh start-nf4
 ```
 
 **That's it!** The script handles:
 - ✅ PersonaPlex server startup
 - ✅ Cloudflare tunnel for public access
+- ✅ localhost.run SSH tunnel (alternative tunneling)
 - ✅ Auto-detection of downloaded models
+- ✅ Support for both full bf16 and NF4 quantized models
 - ✅ API documentation display
 
 ## 📋 Commands
 
 ```bash
-./run.sh start          # Start server + tunnel (default)
+./run.sh start          # Start server + Cloudflare tunnel (full bf16 model)
+./run.sh start-nf4      # Start server + Cloudflare tunnel (NF4 quantized model)
 ./run.sh server-only    # Start server only (localhost)
-./run.sh tunnel-only    # Start tunnel only
+./run.sh tunnel-only    # Start Cloudflare tunnel only
+./run.sh ssh-tunnel     # Start localhost.run SSH tunnel only
+./run.sh api-docs       # Show API documentation
 ./run.sh status         # Check system status
 ./run.sh stop           # Stop all services
-./run.sh api-docs       # Show API documentation
+./run.sh switch-model   # Switch between full and nf4 models
 ```
 
 ## 🔧 Configuration
@@ -57,10 +66,53 @@ export HF_TOKEN=your_huggingface_token  # Optional if models already downloaded
 | `HF_TOKEN` | - | HuggingFace API token |
 | `PERSONAPLEX_PORT` | 8998 | Server port |
 | `PERSONAPLEX_TUNNEL_NAME` | personaplex-voice | Cloudflare tunnel name |
+| `PERSONAPLEX_MODEL_TYPE` | full | Model type: `full` or `nf4` |
+
+## 🎯 Model Options
+
+### Full Model (bf16)
+- **Repository**: `nvidia/personaplex-7b-v1`
+- **Size**: ~15.59 GB
+- **Best for**: Desktop GPUs with 16GB+ VRAM
+- **Command**: `./run.sh start`
+
+### NF4 Quantized Model (INT4)
+- **Repository**: `cudabenchmarktest/personaplex-7b-nf4`
+- **Size**: ~4.14 GB (3.8x smaller)
+- **Best for**: Edge devices, Jetson AGX Orin, 8GB VRAM GPUs
+- **Command**: `./run.sh start-nf4`
+
+### Switch Between Models
+```bash
+# Toggle between models
+./run.sh switch-model
+
+# Or set environment variable
+export PERSONAPLEX_MODEL_TYPE=nf4  # or 'full'
+./run.sh start
+```
+
+## 🌐 Tunneling Options
+
+### Cloudflare Tunnel
+- **URL Format**: `https://xxxxx.trycloudflare.com`
+- **Pros**: Fast, reliable, no account needed
+- **Command**: `./run.sh tunnel-only`
+
+### localhost.run SSH Tunnel
+- **URL Format**: `https://xxxxx.lhr.life`
+- **Pros**: Alternative tunneling, SSH-based
+- **Command**: `./run.sh ssh-tunnel`
+
+### Use Both
+```bash
+# Start server with both tunnels
+./run.sh start
+```
 
 ## 📚 API Endpoints
 
-Once running, access these endpoints via the Cloudflare tunnel URL:
+Once running, access these endpoints via the tunnel URL:
 
 ### Clone Voice
 ```bash
@@ -108,12 +160,24 @@ If you don't have models downloaded yet:
 
 The script will automatically download models on first run.
 
+### Using NF4 Quantized Model (Recommended for Edge)
+
+```bash
+# Set model type to nf4
+export PERSONAPLEX_MODEL_TYPE=nf4
+export HF_TOKEN=your_token
+./run.sh start
+
+# Or use the shortcut command
+./run.sh start-nf4
+```
+
 ## 🛠️ Troubleshooting
 
 ### Models not found
 ```bash
 # Check if models exist
-find personaplex-setup/models -name "*.safetensors"
+find models -name "*.safetensors"
 
 # If missing, set HF_TOKEN and restart
 export HF_TOKEN=your_token
@@ -137,11 +201,31 @@ curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloud
 sudo mv cloudflared /usr/local/bin/
 ```
 
+### SSH tunnel issues
+```bash
+# Check if ssh is installed
+ssh -V
+
+# Install if needed (Ubuntu/Debian)
+sudo apt install openssh-client
+
+# Install if needed (Fedora)
+sudo dnf install openssh-clients
+```
+
+### Check system status
+```bash
+./run.sh status
+```
+
 ## 📁 Project Structure
 
 ```
 PersonaPlex/
 ├── run.sh                 # Main automation script
+├── models/                # Downloaded models
+│   ├── nvidia/personaplex-7b-v1/     # Full bf16 model
+│   └── cudabenchmarktest/personaplex-7b-nf4/  # NF4 quantized model
 ├── personaplex-setup/     # PersonaPlex core (submodule)
 │   ├── moshi/            # Moshi server
 │   ├── client/           # Frontend
@@ -153,9 +237,12 @@ PersonaPlex/
 ## 🔗 Resources
 
 - **Original Repo**: https://github.com/NVIDIA/PersonaPlex
-- **HuggingFace Models**: https://huggingface.co/nvidia/personaplex-7b-v1
+- **HuggingFace Models**:
+  - Full: https://huggingface.co/nvidia/personaplex-7b-v1
+  - NF4: https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4
 - **Research Paper**: https://research.nvidia.com/labs/adlr/files/personaplex/personaplex_preprint.pdf
 - **Demo**: https://research.nvidia.com/labs/adlr/personaplex/
+- **localhost.run**: https://localhost.run
 
 ## 📄 License
 
@@ -168,4 +255,3 @@ Issues and pull requests welcome! This is a community automation wrapper around 
 ---
 
 **Made with ❤️ for the voice cloning community**
-
