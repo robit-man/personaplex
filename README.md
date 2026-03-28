@@ -35,6 +35,9 @@ export HF_TOKEN=your_huggingface_token  # Optional if models already downloaded
 
 # Start with NF4 quantized model (smaller, faster)
 ./run.sh start-nf4
+
+# Start with 2-bit TurboQuant model (smallest, fastest download)
+./run.sh start-turbo2bit
 ```
 
 **That's it!** The script handles:
@@ -42,21 +45,23 @@ export HF_TOKEN=your_huggingface_token  # Optional if models already downloaded
 - ✅ Cloudflare tunnel for public access
 - ✅ localhost.run SSH tunnel (alternative tunneling)
 - ✅ Auto-detection of downloaded models
-- ✅ Support for both full bf16 and NF4 quantized models
+- ✅ Support for full bf16, NF4 quantized, and 2-bit TurboQuant models
+- ✅ Automatic dequantization of 2-bit models to bf16 on load
 - ✅ API documentation display
 
 ## 📋 Commands
 
 ```bash
-./run.sh start          # Start server + Cloudflare tunnel (full bf16 model)
-./run.sh start-nf4      # Start server + Cloudflare tunnel (NF4 quantized model)
-./run.sh server-only    # Start server only (localhost)
-./run.sh tunnel-only    # Start Cloudflare tunnel only
-./run.sh ssh-tunnel     # Start localhost.run SSH tunnel only
-./run.sh api-docs       # Show API documentation
-./run.sh status         # Check system status
-./run.sh stop           # Stop all services
-./run.sh switch-model   # Switch between full and nf4 models
+./run.sh start             # Start server + Cloudflare tunnel (full bf16 model)
+./run.sh start-nf4         # Start server + Cloudflare tunnel (NF4 quantized model)
+./run.sh start-turbo2bit   # Start server + Cloudflare tunnel (2-bit TurboQuant model)
+./run.sh server-only       # Start server only (localhost)
+./run.sh tunnel-only       # Start Cloudflare tunnel only
+./run.sh ssh-tunnel        # Start localhost.run SSH tunnel only
+./run.sh api-docs          # Show API documentation
+./run.sh status            # Check system status
+./run.sh stop              # Stop all services
+./run.sh switch-model      # Switch between full and nf4 models
 ```
 
 ## 🔧 Configuration
@@ -66,7 +71,7 @@ export HF_TOKEN=your_huggingface_token  # Optional if models already downloaded
 | `HF_TOKEN` | - | HuggingFace API token |
 | `PERSONAPLEX_PORT` | 8998 | Server port |
 | `PERSONAPLEX_TUNNEL_NAME` | personaplex-voice | Cloudflare tunnel name |
-| `PERSONAPLEX_MODEL_TYPE` | full | Model type: `full` or `nf4` |
+| `PERSONAPLEX_MODEL_TYPE` | full | Model type: `full`, `nf4`, or `turbo2bit` |
 
 ## 🎯 Model Options
 
@@ -82,13 +87,24 @@ export HF_TOKEN=your_huggingface_token  # Optional if models already downloaded
 - **Best for**: Edge devices, Jetson AGX Orin, 8GB VRAM GPUs
 - **Command**: `./run.sh start-nf4`
 
+### 2-bit TurboQuant Model (NF2+WHT)
+- **Repository**: `personaplex-7b-turbo2bit`
+- **Size**: ~1.86 GB (8.4x smaller than full)
+- **Dequantized Size**: ~16.6 GB (matches full bf16 on GPU)
+- **Best for**: Fast downloads, edge deployment with 16GB+ VRAM
+- **Command**: `./run.sh start-turbo2bit`
+- **Features**: 
+  - Automatic dequantization on load via Walsh-Hadamard Transform
+  - NF2 centroids for optimal 2-bit quantization
+  - Verified to match full bf16 model performance
+
 ### Switch Between Models
 ```bash
 # Toggle between models
 ./run.sh switch-model
 
 # Or set environment variable
-export PERSONAPLEX_MODEL_TYPE=nf4  # or 'full'
+export PERSONAPLEX_MODEL_TYPE=nf4  # or 'full' or 'turbo2bit'
 ./run.sh start
 ```
 

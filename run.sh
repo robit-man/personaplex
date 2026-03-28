@@ -28,17 +28,19 @@ SERVER_PORT="${PERSONAPLEX_PORT:-8998}"
 TUNNEL_NAME="${PERSONAPLEX_TUNNEL_NAME:-personaplex-voice}"
 
 # Model configuration
-# Options: "full" (bf16, 15.59GB) or "nf4" (quantized, 4.14GB)
+# Options: "full" (bf16, 15.59GB), "nf4" (INT4, 4.14GB), or "turbo2bit" (2-bit, 1.86GB)
 MODEL_TYPE="${PERSONAPLEX_MODEL_TYPE:-full}"
 
 # Model repositories
 FULL_MODEL="nvidia/personaplex-7b-v1"
 NF4_MODEL="cudabenchmarktest/personaplex-7b-nf4"
+TURBO2BIT_MODEL="personaplex-7b-turbo2bit"
 
 # Model paths
 MODELS_DIR="$SCRIPT_DIR/models"
 FULL_MODEL_DIR="$MODELS_DIR/$FULL_MODEL"
 NF4_MODEL_DIR="$MODELS_DIR/$NF4_MODEL"
+TURBO2BIT_MODEL_DIR="$MODELS_DIR/$TURBO2BIT_MODEL"
 
 # Current model being used
 CURRENT_MODEL_DIR=""
@@ -73,10 +75,15 @@ show_model_info() {
         echo "  Repository: $FULL_MODEL"
         echo "  Size: ~15.59 GB (bf16)"
         echo "  Best for: Desktop GPUs with 16GB+ VRAM"
-    else
+    elif [ "$MODEL_TYPE" = "nf4" ]; then
         echo "  Repository: $NF4_MODEL"
         echo "  Size: ~4.14 GB (INT4 NF4 quantized)"
         echo "  Best for: Edge devices, Jetson AGX Orin, 8GB VRAM GPUs"
+    elif [ "$MODEL_TYPE" = "turbo2bit" ]; then
+        echo "  Repository: $TURBO2BIT_MODEL"
+        echo "  Size: ~1.86 GB (2-bit TurboQuant NF2+WHT)"
+        echo "  Dequantized Size: ~16.6 GB (matches full bf16)"
+        echo "  Best for: Fast downloads, edge deployment with 16GB+ VRAM"
     fi
     echo ""
 }
@@ -94,10 +101,16 @@ download_models() {
             echo -e "${GREEN}✓ Full model already downloaded${NC}"
             return 0
         fi
-    else
+    elif [ "$MODEL_TYPE" = "nf4" ]; then
         CURRENT_MODEL_DIR="$NF4_MODEL_DIR"
         if [ -d "$CURRENT_MODEL_DIR" ] && [ -n "$(ls -A $CURRENT_MODEL_DIR 2>/dev/null)" ]; then
             echo -e "${GREEN}✓ NF4 quantized model already downloaded${NC}"
+            return 0
+        fi
+    elif [ "$MODEL_TYPE" = "turbo2bit" ]; then
+        CURRENT_MODEL_DIR="$TURBO2BIT_MODEL_DIR"
+        if [ -d "$CURRENT_MODEL_DIR" ] && [ -n "$(ls -A $CURRENT_MODEL_DIR 2>/dev/null)" ]; then
+            echo -e "${GREEN}✓ 2-bit TurboQuant model already downloaded${NC}"
             return 0
         fi
     fi
@@ -116,6 +129,11 @@ download_models() {
         echo "  export HF_TOKEN=your_token_here"
         echo "  ./run.sh start"
         echo ""
+        echo "Or use the 2-bit TurboQuant model (smallest, fastest download):"
+        echo "  export PERSONAPLEX_MODEL_TYPE=turbo2bit"
+        echo "  export HF_TOKEN=your_token_here"
+        echo "  ./run.sh start"
+        echo ""
         exit 1
     fi
     
@@ -125,8 +143,10 @@ download_models() {
     if command -v huggingface-cli &>/dev/null; then
         if [ "$MODEL_TYPE" = "full" ]; then
             huggingface-cli download $FULL_MODEL --local-dir "$CURRENT_MODEL_DIR" --token "$HF_TOKEN"
-        else
+        elif [ "$MODEL_TYPE" = "nf4" ]; then
             huggingface-cli download $NF4_MODEL --local-dir "$CURRENT_MODEL_DIR" --token "$HF_TOKEN"
+        elif [ "$MODEL_TYPE" = "turbo2bit" ]; then
+            huggingface-cli download $TURBO2BIT_MODEL --local-dir "$CURRENT_MODEL_DIR" --token "$HF_TOKEN"
         fi
     else
         # Fallback to git lfs
@@ -135,9 +155,12 @@ download_models() {
         if [ "$MODEL_TYPE" = "full" ]; then
             git clone "https://$HF_TOKEN@huggingface.co/$FULL_MODEL" "$CURRENT_MODEL_DIR" 2>/dev/null || \
             git clone "https://huggingface.co/$FULL_MODEL" "$CURRENT_MODEL_DIR"
-        else
+        elif [ "$MODEL_TYPE" = "nf4" ]; then
             git clone "https://$HF_TOKEN@huggingface.co/$NF4_MODEL" "$CURRENT_MODEL_DIR" 2>/dev/null || \
             git clone "https://huggingface.co/$NF4_MODEL" "$CURRENT_MODEL_DIR"
+        elif [ "$MODEL_TYPE" = "turbo2bit" ]; then
+            git clone "https://$HF_TOKEN@huggingface.co/$TURBO2BIT_MODEL" "$CURRENT_MODEL_DIR" 2>/dev/null || \
+            git clone "https://huggingface.co/$TURBO2BIT_MODEL" "$CURRENT_MODEL_DIR"
         fi
     fi
     
@@ -331,6 +354,12 @@ show_status() {
         echo -e "NF4 Model:  ${RED}Not downloaded${NC}"
     fi
     
+    if [ -d "$TURBO2BIT_MODEL_DIR" ] && [ -n "$(ls -A $TURBO2BIT_MODEL_DIR 2>/dev/null)" ]; then
+        echo -e "2-bit Model: ${GREEN}Downloaded${NC}"
+    else
+        echo -e "2-bit Model: ${RED}Not downloaded${NC}"
+    fi
+    
     # Tunnel status
     if [ -f "tunnel.log" ] && grep -q "trycloudflare.com" tunnel.log 2>/dev/null; then
         CLOUDFLARE_URL=$(grep -oP 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' tunnel.log | tail -1)
@@ -352,27 +381,29 @@ show_status() {
 # Show usage
 show_usage() {
     echo ""
-    echo "Usage: $0 {start|start-nf4|server-only|tunnel-only|ssh-tunnel|api-docs|status|stop|switch-model}"
+    echo "Usage: $0 {start|start-nf4|start-turbo2bit|server-only|tunnel-only|ssh-tunnel|api-docs|status|stop|switch-model}"
     echo ""
     echo "Commands:"
-    echo "  start         Start server + Cloudflare tunnel (full bf16 model)"
-    echo "  start-nf4     Start server + Cloudflare tunnel (NF4 quantized model)"
-    echo "  server-only   Start server only (localhost)"
-    echo "  tunnel-only   Start Cloudflare tunnel only"
-    echo "  ssh-tunnel    Start localhost.run SSH tunnel only"
-    echo "  api-docs      Show API documentation"
-    echo "  status        Check system status"
-    echo "  stop          Stop all services"
-    echo "  switch-model  Switch between full and nf4 models"
+    echo "  start             Start server + Cloudflare tunnel (full bf16 model)"
+    echo "  start-nf4         Start server + Cloudflare tunnel (NF4 quantized model)"
+    echo "  start-turbo2bit   Start server + Cloudflare tunnel (2-bit TurboQuant model)"
+    echo "  server-only       Start server only (localhost)"
+    echo "  tunnel-only       Start Cloudflare tunnel only"
+    echo "  ssh-tunnel        Start localhost.run SSH tunnel only"
+    echo "  api-docs          Show API documentation"
+    echo "  status            Check system status"
+    echo "  stop              Stop all services"
+    echo "  switch-model      Switch between full and nf4 models"
     echo ""
     echo "Environment Variables:"
     echo "  HF_TOKEN              HuggingFace API token"
     echo "  PERSONAPLEX_PORT      Server port (default: 8998)"
-    echo "  PERSONAPLEX_MODEL_TYPE Model type: 'full' or 'nf4' (default: full)"
+    echo "  PERSONAPLEX_MODEL_TYPE Model type: 'full', 'nf4', or 'turbo2bit' (default: full)"
     echo ""
     echo "Examples:"
     echo "  ./run.sh start                                    # Start with full model"
     echo "  ./run.sh start-nf4                                # Start with NF4 model"
+    echo "  ./run.sh start-turbo2bit                          # Start with 2-bit TurboQuant model"
     echo "  PERSONAPLEX_MODEL_TYPE=nf4 ./run.sh start         # Start with NF4 model"
     echo "  ./run.sh switch-model                             # Toggle between models"
     echo ""
@@ -417,6 +448,29 @@ case "${1:-start}" in
     
     start-nf4)
         export PERSONAPLEX_MODEL_TYPE="nf4"
+        show_model_info
+        download_models
+        start_server
+        start_cloudflare_tunnel
+        echo -e "${CYAN}===========================================${NC}"
+        echo -e "${CYAN}  Access URLs:${NC}"
+        echo -e "${CYAN}===========================================${NC}"
+        echo ""
+        echo -e "Local:      http://localhost:$SERVER_PORT"
+        if [ -f "tunnel.log" ]; then
+            CLOUDFLARE_URL=$(grep -oP 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' tunnel.log | tail -1)
+            [ -n "$CLOUDFLARE_URL" ] && echo -e "Cloudflare: $CLOUDFLARE_URL"
+        fi
+        echo ""
+        echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
+        echo ""
+        
+        # Keep script running and show logs
+        tail -f tunnel.log
+        ;;
+    
+    start-turbo2bit)
+        export PERSONAPLEX_MODEL_TYPE="turbo2bit"
         show_model_info
         download_models
         start_server
