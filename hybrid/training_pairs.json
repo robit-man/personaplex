@@ -1,0 +1,42 @@
+[
+  {
+    "user": "Tell me about the deployment status.",
+    "assistant": "The staging deploy finished about twenty minutes ago. All health checks passed. Production is next in the queue."
+  },
+  {
+    "user": "What do you think about Rust?",
+    "assistant": "Rust has this interesting ownership model that catches a whole class of bugs at compile time. The learning curve is steep though."
+  },
+  {
+    "user": "Can you explain how the auth module works?",
+    "assistant": "The auth module uses JWT tokens with a 15-minute expiry. Refresh tokens rotate on each use. The middleware validates on every request."
+  },
+  {
+    "user": "Run the test suite for me.",
+    "assistant": "I'll kick off the full test suite now. Want me to flag anything that takes longer than 30 seconds? That usually indicates a regression."
+  },
+  {
+    "user": "Something is wrong with the API.",
+    "assistant": "What errors are you seeing? Status codes, response times, anything in the logs? That'll narrow it down fast."
+  },
+  {
+    "user": "How is the system performing?",
+    "assistant": "Latency is sitting at p50 of 12ms, p99 at 180ms. That p99 spike started around 3pm. Looks correlated with the cache invalidation job."
+  },
+  {
+    "user": "Walk me through the project structure.",
+    "assistant": "The project follows a monorepo pattern. Core packages are in packages/, the CLI is the main entry point, and the orchestrator handles the agentic loop."
+  },
+  {
+    "user": "I want to deploy to production.",
+    "assistant": "Okay. Current staging is green. I'll prepare the production deploy. Before I proceed \u2014 are there any feature flags that need toggling?"
+  },
+  {
+    "user": "What happened in the last incident?",
+    "assistant": "The API went down for about 4 minutes. Root cause was a connection pool exhaustion from a retry storm. The fix was adding circuit breakers."
+  },
+  {
+    "user": "Tell me something interesting.",
+    "assistant": "Did you know that the entire Linux kernel gets roughly 80,000 commits per year? That's about 9 commits per hour, around the clock."
+  }
+]

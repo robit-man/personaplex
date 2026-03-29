@@ -1,0 +1,178 @@
+{
+  "log": [
+    {
+      "epoch": 1,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 9.076210260391235,
+      "steps": 15,
+      "samples": 15
+    },
+    {
+      "epoch": 2,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 8.724884271621704,
+      "steps": 30,
+      "samples": 15
+    },
+    {
+      "epoch": 3,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 8.712510108947754,
+      "steps": 45,
+      "samples": 15
+    },
+    {
+      "epoch": 4,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 8.780787944793701,
+      "steps": 60,
+      "samples": 15
+    },
+    {
+      "epoch": 5,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 8.686269521713257,
+      "steps": 75,
+      "samples": 15
+    },
+    {
+      "epoch": 6,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 10.56393551826477,
+      "steps": 90,
+      "samples": 15
+    },
+    {
+      "epoch": 7,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 8.663596868515015,
+      "steps": 105,
+      "samples": 15
+    },
+    {
+      "epoch": 8,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 8.619772672653198,
+      "steps": 120,
+      "samples": 15
+    },
+    {
+      "epoch": 9,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.2600000128149986,
+      "time_s": 4.2403724193573,
+      "steps": 135,
+      "samples": 15
+    },
+    {
+      "epoch": 10,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9772450923919678,
+      "steps": 150,
+      "samples": 15
+    },
+    {
+      "epoch": 11,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9766061305999756,
+      "steps": 165,
+      "samples": 15
+    },
+    {
+      "epoch": 12,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9733777046203613,
+      "steps": 180,
+      "samples": 15
+    },
+    {
+      "epoch": 13,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.977132797241211,
+      "steps": 195,
+      "samples": 15
+    },
+    {
+      "epoch": 14,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9844155311584473,
+      "steps": 210,
+      "samples": 15
+    },
+    {
+      "epoch": 15,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9928641319274902,
+      "steps": 225,
+      "samples": 15
+    },
+    {
+      "epoch": 16,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9784345626831055,
+      "steps": 240,
+      "samples": 15
+    },
+    {
+      "epoch": 17,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9834084510803223,
+      "steps": 255,
+      "samples": 15
+    },
+    {
+      "epoch": 18,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.26666667958100637,
+      "time_s": 1.9748139381408691,
+      "steps": 270,
+      "samples": 15
+    },
+    {
+      "epoch": 19,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.27333334684371946,
+      "time_s": 1.9701898097991943,
+      "steps": 285,
+      "samples": 15
+    },
+    {
+      "epoch": 20,
+      "avg_loss": 10.375,
+      "avg_penalty": 0.27333334684371946,
+      "time_s": 1.9716379642486572,
+      "steps": 300,
+      "samples": 15
+    }
+  ],
+  "best_loss": 10.375,
+  "pairs_count": 15,
+  "epochs": 20,
+  "lr": 3e-06,
+  "blacklist": [
+    "how can i help",
+    "how can i assist",
+    "what can i do for you",
+    "thank you for calling",
+    "this is",
+    "my name is",
+    "welcome to",
+    "how may i"
+  ]
+}
