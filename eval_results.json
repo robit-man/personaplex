@@ -1,0 +1,40 @@
+[
+  {
+    "prompt": "You enjoy casual conversation about technology and science.",
+    "steps": 50,
+    "nf4": {
+      "name": "nf4",
+      "token_match_rate": 0.8,
+      "bf16_repetition_2gram": 0.8979591836734694,
+      "quant_repetition_2gram": 0.7142857142857143,
+      "repetition_increase": -0.18367346938775508,
+      "bf16_unique_ratio": 0.08,
+      "quant_unique_ratio": 0.18,
+      "bf16_text": " Hello.",
+      "quant_text": " Hello, my name is Lisa.",
+      "bf16_step_ms": 112.0526647567749,
+      "quant_step_ms": 113.82239818572998,
+      "bf16_word_count": 1,
+      "quant_word_count": 5,
+      "quant_longest_repeat": 17,
+      "bf16_longest_repeat": 22
+    },
+    "turbo2bit": {
+      "name": "turbo2bit",
+      "token_match_rate": 0.04,
+      "bf16_repetition_2gram": 0.8979591836734694,
+      "quant_repetition_2gram": 0.2857142857142857,
+      "repetition_increase": -0.6122448979591837,
+      "bf16_unique_ratio": 0.08,
+      "quant_unique_ratio": 0.34,
+      "bf16_text": " Hello.",
+      "quant_text": ",.... Far.? We*. Re, some,?? We? Some, there, at? *??, Some,? How on??? How? Some, some? Only",
+      "bf16_step_ms": 112.0526647567749,
+      "quant_step_ms": 118.0211067199707,
+      "bf16_word_count": 1,
+      "quant_word_count": 17,
+      "quant_longest_repeat": 0,
+      "bf16_longest_repeat": 22
+    }
+  }
+]
