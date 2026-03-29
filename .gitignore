@@ -37,3 +37,6 @@ personaplex-setup/
 # But keep the submodule directory structure
 !personaplex-setup/.git
 
+distillation/checkpoints_v2/*.pt
+distillation/dataset_v2/*.pt
+__pycache__/
