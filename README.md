@@ -1,32 +1,40 @@
 # PersonaPlex
 
-Full-duplex voice AI with native 2-bit quantization, voice cloning, and a minimal dark UI.
+Full-duplex voice AI with hybrid LLM reasoning, knowledge distillation, and a custom dark UI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![HuggingFace](https://img.shields.io/badge/🤗-TurboQuant_2bit-yellow)](https://huggingface.co/cudabenchmarktest/personaplex-7b-turbo2bit)
-[![HuggingFace](https://img.shields.io/badge/🤗-NF4-blue)](https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4)
+[![npm](https://img.shields.io/badge/npm-open--agents--ai-blue)](https://www.npmjs.com/package/open-agents-ai)
+[![HuggingFace](https://img.shields.io/badge/🤗-NF4_Distilled-green)](https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4-distilled)
+[![HuggingFace](https://img.shields.io/badge/🤗-Hybrid-yellow)](https://huggingface.co/cudabenchmarktest/personaplex-7b-hybrid)
 
-## What's Different
+## What Is This
 
-This is a heavily modified fork of [NVIDIA PersonaPlex](https://github.com/NVIDIA/personaplex) with:
+A heavily modified fork of [NVIDIA PersonaPlex](https://github.com/NVIDIA/personaplex) with:
 
-- **Native 2-bit inference** — `Linear2bit` module keeps NF2+WHT packed weights on GPU (~10GB peak vs 19GB bf16)
-- **Custom frontend** — dark grey (#1a1a1a) + amber (#ffae00) accent, mobile-friendly, no call-center presets
-- **Ollama prompt expander** — type a snippet, select any local Ollama model, expand into a full persona prompt
-- **Voice cloning** — press-and-hold recording + file upload → clone pipeline with optional LuxTTS synthetic generation
-- **Hot-restart weight tiers** — switch between bf16/nf4/turbo2bit from the UI, server restarts without killing the tunnel
-- **CPU Mimi codec** — offload audio encoder/decoder to CPU, saves ~840MB VRAM
-- **Dynamic voice list** — `/api/voices` endpoint, custom voices appear first
-- **Server-side Ollama proxy** — no CORS issues on tunneled connections
+**Hybrid Architecture** — PersonaPlex handles real-time voice I/O. A local LLM (Qwen via Ollama) handles reasoning. PersonaPlex's built-in call-center behavior is suppressed; users see the LLM's natural responses in the text stream while hearing PersonaPlex's voice.
 
-## VRAM Comparison
+**Knowledge Distillation** — NF4 weights distilled from the bf16 teacher (5 epochs, 3000 samples). Token match improved from 75% to 90%.
 
-| Configuration | Peak VRAM | Download |
-|--------------|-----------|----------|
-| BF16 (original) | ~19 GB | 15.6 GB |
-| NF4 (INT4) | ~19 GB | 4.1 GB |
-| **TurboQuant 2-bit (native)** | **~10 GB** | **2.1 GB** |
-| + CPU Mimi | saves 840 MB | — |
+**Custom Frontend** — dark grey (#1a1a1a) background with amber (#ffae00) accents. Ultra-minimal, mobile-friendly. No call-center preset buttons.
+
+## Interface
+
+The frontend provides:
+
+- **Voice selector** — custom cloned voices at top, NVIDIA defaults below
+- **Ollama prompt expander** — enter a snippet (e.g., "grumpy pirate"), select any local Ollama model, click Expand to generate a full persona prompt
+- **Settings panel** (collapsible):
+  - Weight tier selector (bf16 / NF4 / NF4 distilled) with hot-restart
+  - Ollama model picker for prompt expansion
+  - Voice cloning: press-and-hold recording or file upload
+  - LuxTTS synthetic dataset generation toggle
+  - Pipeline progress bar during cloning
+- **Conversation view** — full-height, non-scrollable page with internally scrollable text area
+- **Transparent audio visualizers** — amber accent, no black backgrounds
+- **GPU stats** — live VRAM, utilization, temperature in header
+- **Live tier badge** — shows currently loaded model with green dot when connected
+
+Mobile: viewport locked (no pinch zoom), 16px font on inputs to prevent iOS focus zoom.
 
 ## Quick Start
 
@@ -34,87 +42,105 @@ This is a heavily modified fork of [NVIDIA PersonaPlex](https://github.com/NVIDI
 git clone https://github.com/robit-man/personaplex.git
 cd personaplex
 
-# Full bf16 model
-export HF_TOKEN=your_token
-./run.sh start
-
-# Native 2-bit (~10GB VRAM, no HF token needed)
-./run.sh start-turbo2bit
+# Recommended: NF4 with hybrid reasoning
+export HYBRID_LLM_MODEL=qwen3.5:27b  # or whatever Ollama model you prefer
+./run.sh start-nf4
 
 # Or use start_server.sh directly
 cd personaplex-setup
-./start_server.sh native-2bit
+./start_server.sh bf16              # Full quality (~19GB VRAM)
+./start_server.sh 2bit             # 2-bit download, dequant at load
+./start_server.sh native-2bit      # Native 2-bit on GPU (~10GB peak)
+./start_server.sh cpu-offload      # Split model across GPU+CPU
 ```
 
-## Server Modes
-
+Add `--hybrid` to any mode to enable LLM reasoning:
 ```bash
-./start_server.sh bf16          # Full quality (~19GB VRAM)
-./start_server.sh 2bit          # 2-bit download, dequant at load (~19GB)
-./start_server.sh native-2bit   # Native 2-bit on GPU (~10GB peak)
-./start_server.sh cpu-offload   # Split model across GPU+CPU
+python -m moshi.server --moshi-weight model.safetensors --device cuda --hybrid
 ```
+
+## Hybrid Architecture
+
+```
+User speaks → PersonaPlex (audio in/out, full-duplex)
+                         ↓
+            PersonaPlex generates text tokens (suppressed)
+                         ↓
+            Hybrid agent intercepts → Qwen/Ollama generates response
+                         ↓
+            LLM response displayed as text (user reads Qwen's words)
+```
+
+The user **hears** PersonaPlex's voice. The user **reads** Qwen's intelligent response. Dynamic model escalation: 4B for quick exchanges, 27B for conversation, 122B for complex analysis.
+
+## Distillation Results
+
+| Model | Token Match vs bf16 | Status |
+|-------|---------------------|--------|
+| bf16 (teacher) | 100% | Reference |
+| NF4 raw | 75% | Coherent |
+| **NF4 distilled** | **90%** | Recommended |
+| TurboQuant 2-bit | 4% | Broken (incoherent) |
+
+Training: 5 epochs, 3000 samples, 73 min on A100. Loss: 0.58 → 0.07.
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/chat` | WebSocket | Full-duplex voice conversation |
-| `/api/voices` | GET | List available voices (custom first) |
+| `/api/voices` | GET | Available voices (custom first) |
 | `/api/clone` | POST | Upload WAV → clone voice embedding |
-| `/api/clone-pipeline` | POST | Full pipeline: record → LuxTTS synth → PersonaPlex clone |
-| `/api/clone-pipeline/{id}` | GET | Poll clone pipeline progress |
-| `/api/status` | GET | Current tier, device, port |
+| `/api/clone-pipeline` | POST | Record → LuxTTS synth → PersonaPlex clone |
+| `/api/clone-pipeline/{id}` | GET | Poll pipeline progress |
+| `/api/status` | GET | Tier, device, GPU stats |
 | `/api/restart` | POST | Hot-restart with different weight tier |
-| `/api/ollama/tags` | GET | Proxy: list Ollama models |
-| `/api/ollama/generate` | POST | Proxy: generate with Ollama |
-
-## Frontend
-
-Minimal dark UI with amber accents:
-- Custom voices at top of dropdown
-- Ollama-powered prompt expander (select any local model)
-- Settings panel: weight tier selector, Ollama model picker, voice cloning
-- Press-and-hold voice recording for cloning
-- LuxTTS synthetic data generation toggle
-- Pipeline progress bar
-- Transparent canvas audio visualizers
-- Mobile-friendly (no pinch zoom, 16px inputs)
+| `/api/hybrid` | GET | Hybrid mode status |
+| `/api/ollama/tags` | GET | Proxy: Ollama models (no CORS) |
+| `/api/ollama/generate` | POST | Proxy: Ollama generation |
 
 ## Voice Cloning
 
-Two paths:
-1. **Direct clone** — upload or record audio → PersonaPlex extracts voice embedding
-2. **LuxTTS pipeline** — upload short sample → LuxTTS generates synthetic training data → PersonaPlex clones from the richer dataset
+1. **Direct clone** — upload or press-and-hold to record audio → PersonaPlex extracts voice embedding (.pt)
+2. **LuxTTS pipeline** — upload short sample → LuxTTS generates 5 synthetic sentences → concatenate → PersonaPlex clones from the richer dataset
 
-## Quantized Model Repos
+## HuggingFace Models
 
-- **TurboQuant 2-bit**: [cudabenchmarktest/personaplex-7b-turbo2bit](https://huggingface.co/cudabenchmarktest/personaplex-7b-turbo2bit) — 2.1 GB, native inference via `linear2bit.py`
-- **NF4 INT4**: [cudabenchmarktest/personaplex-7b-nf4](https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4) — 4.1 GB
-- **Original**: [nvidia/personaplex-7b-v1](https://huggingface.co/nvidia/personaplex-7b-v1) — 15.6 GB (requires HF token)
+| Repo | Size | Quality | Use Case |
+|------|------|---------|----------|
+| [personaplex-7b-nf4-distilled](https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4-distilled) | 16.7 GB | 90% match | **Recommended** |
+| [personaplex-7b-hybrid](https://huggingface.co/cudabenchmarktest/personaplex-7b-hybrid) | Scripts only | — | Hybrid agent code |
+| [personaplex-7b-nf4](https://huggingface.co/cudabenchmarktest/personaplex-7b-nf4) | 4.1 GB | 75% match | Smaller download |
+| [personaplex-7b-turbo2bit](https://huggingface.co/cudabenchmarktest/personaplex-7b-turbo2bit) | 2.1 GB | 4% match | Research only |
+| [nvidia/personaplex-7b-v1](https://huggingface.co/nvidia/personaplex-7b-v1) | 15.6 GB | 100% | Requires HF token |
 
 ## Project Structure
 
 ```
 personaplex/
-├── run.sh                      # Main launcher
-├── personaplex-setup/          # Core server + frontend
+├── run.sh                          # Main launcher
+├── personaplex-setup/
 │   ├── moshi/moshi/
-│   │   ├── server.py           # WebSocket server + REST API
-│   │   ├── models/loaders.py   # 2-bit dequant in model loading
-│   │   └── modules/
-│   │       └── linear2bit.py   # Native 2-bit Linear module
-│   ├── client/                 # React frontend (Tailwind + Vite)
-│   ├── voices/personaplex/     # Voice cloning tools
-│   │   ├── clone-voice.py
-│   │   ├── dequant-loader.py
-│   │   └── quantize-weights.py
-│   └── start_server.sh         # 4-mode server launcher
-└── models/                     # Local model checkpoints
+│   │   ├── server.py               # WebSocket + REST + hybrid agent
+│   │   ├── hybrid_agent.py         # LLM reasoning layer
+│   │   ├── models/loaders.py       # NF4/2-bit dequant support
+│   │   └── modules/linear2bit.py   # Native 2-bit Linear module
+│   ├── client/                     # React frontend (Tailwind + Vite)
+│   ├── voices/personaplex/         # Voice cloning tools
+│   └── start_server.sh             # Multi-mode launcher
+├── hybrid/                         # Training + eval
+│   ├── sft_v2.py                   # SFT with forward_train
+│   ├── calibrated_quant.py         # GPTQ-style quantization
+│   ├── prompts.json                # Anti-call-center prompts
+│   └── combined_training_data.json # 32K training pairs
+├── distillation/
+│   ├── distill_v2.py               # Knowledge distillation script
+│   └── dataset_v2/                 # Teacher logit dataset
+└── eval_quant.py                   # Quality evaluation harness
 ```
 
 ## License
 
-MIT — same as base PersonaPlex model.
+MIT — same as base PersonaPlex.
 
-Built on [NVIDIA PersonaPlex](https://research.nvidia.com/labs/adlr/personaplex/) by the [open-agents](https://github.com/open-agents-ai) team.
+Built by [open-agents-ai](https://www.npmjs.com/package/open-agents-ai) on [NVIDIA PersonaPlex](https://research.nvidia.com/labs/adlr/personaplex/).
