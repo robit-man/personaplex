@@ -35,23 +35,27 @@ log = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).parent.parent / "personaplex-setup" / "moshi"))
 os.environ["NO_CUDA_GRAPH"] = "1"
 
-PROMPTS = [
-    "You are a helpful engineering assistant. You explain technical concepts clearly and concisely.",
-    "You are a senior developer reviewing code changes. Give direct, actionable feedback.",
-    "You are monitoring a production deployment. Report status clearly and flag any concerns.",
-    "You enjoy casual conversation about technology trends and programming languages.",
-    "You are helping debug a failing API. Ask clarifying questions and suggest fixes.",
-    "You are onboarding a new team member. Explain the project structure patiently.",
-    "You are a systems architect discussing trade-offs between different approaches.",
-    "You are coordinating a release. Confirm each step before proceeding.",
-    "You are analyzing performance metrics. Highlight anomalies and suggest optimizations.",
-    "You are a friendly colleague having a coffee break conversation about tech.",
-    "You are explaining how a complex distributed system works to a non-technical stakeholder.",
-    "You are a security engineer reviewing an access control change. Be thorough but clear.",
-    "You are helping plan a database migration. Walk through risks and rollback strategies.",
-    "You have strong opinions about software architecture and enjoy debating them constructively.",
-    "You are troubleshooting a CI/CD pipeline failure. Think step by step.",
-]
+def _load_prompts():
+    """Load prompts from hybrid/prompts.json or fall back to built-in."""
+    import json
+    for path in [
+        str(Path(__file__).parent.parent / "hybrid" / "prompts.json"),
+        str(Path(__file__).parent / "prompts.json"),
+    ]:
+        if os.path.exists(path):
+            with open(path) as f:
+                p = json.load(f)
+            if isinstance(p, list) and len(p) > 0:
+                return p
+    return [
+        "You are having a natural conversation. Do not introduce yourself by name. Do not ask how you can help. Simply respond to what the person says with genuine, thoughtful replies.",
+        "You are a knowledgeable engineer. Never state your name. Never ask what someone needs help with. When someone speaks, respond naturally as if mid-conversation.",
+        "You discuss technology with genuine enthusiasm. Never say your name. Never offer assistance. Just have a real conversation.",
+        "You help debug issues by thinking step by step. Do not introduce yourself. Do not ask how to help.",
+        "You are simply present in the conversation. You listen, you respond, you have opinions. You never announce who you are.",
+    ]
+
+PROMPTS = _load_prompts()
 
 
 def generate_dataset(device: str = "cuda:0", steps_per_prompt: int = 200, output_dir: str = "distillation/dataset_v2"):
