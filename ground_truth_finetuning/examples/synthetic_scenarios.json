@@ -1,0 +1,60 @@
+[
+  {
+    "id": "reschedule_unknown_availability",
+    "caller": "I need to move my service appointment to Thursday afternoon.",
+    "canonical_text": "I can check Thursday afternoon availability. What time works best for you?",
+    "plan": {
+      "schemaVersion": 1,
+      "mode": "expressive",
+      "intent": "reschedule_appointment",
+      "dialogueAct": "confirm_availability",
+      "entities": {"requested_day": "Thursday", "time_window": "afternoon"},
+      "constraints": {
+        "required_facts": ["availability_unknown"],
+        "forbidden_claims": ["appointment_confirmed"],
+        "must_ask": ["preferred_time"],
+        "must_not_request": ["payment_card"]
+      },
+      "delivery": {
+        "language": "en-US",
+        "register": "calm_professional",
+        "assertiveness": 0.45,
+        "interruptibility": "yield_on_caller_speech",
+        "max_duration_ms": 6500,
+        "speaking_rate_bucket": "normal",
+        "pause_density_bucket": "moderate",
+        "emphasis_targets": ["Thursday", "afternoon"]
+      },
+      "expiryMs": 7000
+    }
+  },
+  {
+    "id": "strict_reference_number",
+    "caller": "Can you repeat the reference number?",
+    "canonical_text": "Your reference number is 4827. Please write down 4827.",
+    "plan": {
+      "schemaVersion": 1,
+      "mode": "strict",
+      "intent": "repeat_reference_number",
+      "dialogueAct": "provide_verified_identifier",
+      "entities": {"reference_number": "4827"},
+      "constraints": {
+        "required_facts": ["reference_number"],
+        "forbidden_claims": ["account_status"],
+        "must_ask": [],
+        "must_not_request": ["payment_card"]
+      },
+      "delivery": {
+        "language": "en-US",
+        "register": "clear_precise",
+        "assertiveness": 0.55,
+        "interruptibility": "yield_on_caller_speech",
+        "max_duration_ms": 4500,
+        "speaking_rate_bucket": "slow",
+        "pause_density_bucket": "moderate",
+        "emphasis_targets": ["4827"]
+      },
+      "expiryMs": 7000
+    }
+  }
+]

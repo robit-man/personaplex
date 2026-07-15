@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PersonaPlex ControlPlan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "callId", "turnId", "revision", "contextHash", "mode", "intent", "dialogueAct", "entities", "constraints", "delivery", "expiryMs"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "callId": {"type": "string", "minLength": 1},
+    "turnId": {"type": "integer", "minimum": 0},
+    "revision": {"type": "integer", "minimum": 0},
+    "contextHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "mode": {"enum": ["expressive", "strict", "safe_fallback"]},
+    "intent": {"type": "string", "minLength": 1},
+    "dialogueAct": {"type": "string", "minLength": 1},
+    "entities": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+    "constraints": {
+      "type": "object", "additionalProperties": false,
+      "required": ["required_facts", "forbidden_claims", "must_ask", "must_not_request"],
+      "properties": {
+        "required_facts": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "forbidden_claims": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "must_ask": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "must_not_request": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "delivery": {
+      "type": "object", "additionalProperties": false,
+      "required": ["language", "register", "assertiveness", "interruptibility", "max_duration_ms"],
+      "properties": {
+        "language": {"type": "string", "minLength": 1},
+        "register": {"type": "string", "minLength": 1},
+        "assertiveness": {"type": "number", "minimum": 0, "maximum": 1},
+        "interruptibility": {"enum": ["yield_on_caller_speech", "complete_if_uninterrupted"]},
+        "max_duration_ms": {"type": "integer", "minimum": 250, "maximum": 30000},
+        "speaking_rate_bucket": {"type": "string"},
+        "pause_density_bucket": {"type": "string"},
+        "emphasis_targets": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "expiryMs": {"type": "integer", "minimum": 250, "maximum": 30000}
+  }
+}

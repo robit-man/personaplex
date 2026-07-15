@@ -1,0 +1,11 @@
+data/
+artifacts/
+checkpoints/
+*.pt
+*.pth
+*.safetensors
+*.wav
+*.flac
+*.opus
+*.jsonl
+!examples/*.jsonl
