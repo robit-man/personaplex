@@ -80,12 +80,14 @@ class ControlUpdate:
     revision: int
     apply_after_turn_id: int
     base_context_hash: str
+    context_hash: str
     mode: ControlMode
     plan: SemanticPlan
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "call_id", _require_text(self.call_id, "call_id", 256))
         object.__setattr__(self, "base_context_hash", _require_text(self.base_context_hash, "base_context_hash", 256))
+        object.__setattr__(self, "context_hash", _require_text(self.context_hash, "context_hash", 256))
         if not isinstance(self.revision, int) or self.revision < 1:
             raise ValueError("revision must be a positive integer")
         if not isinstance(self.apply_after_turn_id, int) or self.apply_after_turn_id < 0:
@@ -107,6 +109,7 @@ class ControlUpdate:
             revision=raw.get("revision"),
             apply_after_turn_id=raw.get("apply_after_turn_id"),
             base_context_hash=raw.get("base_context_hash"),
+            context_hash=raw.get("context_hash"),
             mode=ControlMode(raw.get("mode")),
             plan=SemanticPlan.from_dict(raw.get("plan", {})),
         )

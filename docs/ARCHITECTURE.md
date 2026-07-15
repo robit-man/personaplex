@@ -61,6 +61,7 @@ text. The fallback must be audible before the system asserts completion.
   "revision": 18,
   "apply_after_turn_id": 7,
   "base_context_hash": "sha256:...",
+  "context_hash": "sha256:...",
   "mode": "strict",
   "plan": {
     "intent": "reschedule appointment",
