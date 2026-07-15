@@ -10,12 +10,14 @@ This log separates published facts, local observations, and hypotheses. Entries 
 - **Published design:** PersonaPlex uses concurrent user audio, agent text, and agent audio streams. A system prompt combines role text and an audio voice prompt.
 - **Training implication:** Audio and text are joint outputs in a native speech model. A text response generated after the model has spoken is not part of its inference path.
 - **Loss implication:** The preprint describes masked system-prompt loss and relatively small nonsemantic-audio weighting (reported as 0.02) with a padded-text weighting. Stage 1 follows this as a starting point and uses an explicit ablation rather than historical local heuristics.
+- **Published evaluation scope:** The preprint reports 350 customer-service evaluation questions in Service-Duplex-Bench in addition to 400 Full-Duplex-Bench questions. The local suite therefore needs broad held-out role and conversation-dynamics coverage rather than a few hand-selected calls.
 - **Limit:** Role prompts guide behavior; they are not an exact-wording guarantee.
 
 ### Moshi
 
 - **Source:** [Moshi paper](https://arxiv.org/abs/2410.00037).
 - **Published design:** A full-duplex spoken dialogue model jointly models semantic and acoustic streams and targets low practical latency.
+- **Published latency:** Moshi reports 160 ms theoretical and 200 ms practical latency. This is a research-system reference, not a production Twilio latency promise; bridge, ASR, planning, prefix prefill, codec conversion, and network measurements are all reported independently.
 - **Implementation implication:** Code delays, stream assignment, and temporal causality are model semantics, not preprocessing details.
 
 ### Qwen3-TTS

@@ -39,6 +39,7 @@ This program covers the training and runtime work required to turn PersonaPlex i
 | [VOICE_AND_PROSODY.md](VOICE_AND_PROSODY.md) | Voice-prompt strategy, prosody workflow, and consented teacher integrations. |
 | [EVALUATION.md](EVALUATION.md) | Offline, replay, emulated-Twilio, and live promotion gates. |
 | [RESEARCH_LOG.md](RESEARCH_LOG.md) | Dated evidence, references, verified observations, and open investigations. |
+| [REFERENCES.md](REFERENCES.md) | Claim-level primary-source register and applicability limits. |
 | [DECISIONS.md](DECISIONS.md) | Architecture decisions and explicitly rejected shortcuts. |
 
 ## Delivery sequence
