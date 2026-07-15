@@ -12,6 +12,8 @@ import torch
 from torch import Tensor
 import torch.nn.functional as F
 
+from .contracts import StreamLayout
+
 
 @dataclass
 class NativePrefixOutput:
@@ -114,23 +116,48 @@ def agent_only_loss(
     output: NativePrefixOutput,
     codes: Tensor,
     agent_target_mask: Tensor,
+    stream_layout: StreamLayout,
     *,
     audio_weight: float = 0.02,
 ) -> LossBreakdown:
-    """Computes loss only for agent text and agent audio, never caller audio."""
+    """Computes loss only for named agent streams, never caller audio.
+
+    ``lm_model.dep_q`` covers every audio stream consumed by the depformer.  In
+    duplex PersonaPlex that includes the caller's eight input streams, so slicing
+    ``audio_offset:audio_offset + dep_q`` would silently optimize on caller audio.
+    """
     if agent_target_mask.shape != codes.shape or agent_target_mask.dtype != torch.bool:
         raise ValueError("agent_target_mask must be bool and match codes [B, K, T]")
-    agent_audio_end = lm_model.audio_offset + lm_model.dep_q
-    if agent_target_mask[:, agent_audio_end:].any():
-        raise ValueError("caller/unknown audio stream is marked as a target")
-    text_valid = output.text_mask & agent_target_mask[:, :1]
-    audio_valid = output.audio_mask & agent_target_mask[:, lm_model.audio_offset:agent_audio_end]
+    stream_layout.validate_for_model(lm_model)
+    if codes.shape[1] != lm_model.num_codebooks:
+        raise ValueError("codes do not match the loaded model stream count")
+
+    text_index = stream_layout.text_stream_indices[0]
+    allowed_target_indices = stream_layout.text_stream_indices + stream_layout.agent_audio_stream_indices
+    forbidden_target_indices = sorted(set(range(codes.shape[1])) - set(allowed_target_indices))
+    if forbidden_target_indices and agent_target_mask[:, forbidden_target_indices].any():
+        raise ValueError("caller or unknown stream is marked as an optimization target")
+
+    agent_global_indices = torch.tensor(
+        stream_layout.agent_audio_stream_indices, device=codes.device, dtype=torch.long
+    )
+    agent_output_indices = torch.tensor(
+        stream_layout.agent_audio_output_indices(lm_model),
+        device=output.audio_logits.device,
+        dtype=torch.long,
+    )
+    text_valid = output.text_mask[:, :1] & agent_target_mask[:, text_index : text_index + 1]
+    audio_logits = output.audio_logits.index_select(1, agent_output_indices)
+    audio_mask = output.audio_mask.index_select(1, agent_output_indices)
+    audio_targets = codes.index_select(1, agent_global_indices)
+    audio_targets_mask = agent_target_mask.index_select(1, agent_global_indices)
+    audio_valid = audio_mask & audio_targets_mask
     text_loss, text_tokens = _masked_cross_entropy(
-        output.text_logits[:, 0], codes[:, 0], text_valid[:, 0]
+        output.text_logits[:, 0], codes[:, text_index], text_valid[:, 0]
     )
     audio_loss, audio_tokens = _masked_cross_entropy(
-        output.audio_logits.permute(0, 1, 2, 3),
-        codes[:, lm_model.audio_offset:agent_audio_end],
+        audio_logits,
+        audio_targets,
         audio_valid,
     )
     return LossBreakdown(

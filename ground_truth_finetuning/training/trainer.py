@@ -6,14 +6,23 @@ from typing import Mapping
 
 import torch
 
+from .contracts import StreamLayout
 from .native_training import LossBreakdown, agent_only_loss, forward_with_semantic_prefix
 
 
 class SemanticPrefixTrainer:
-    def __init__(self, lm_model: object, adapter: torch.nn.Module, optimizer: torch.optim.Optimizer) -> None:
+    def __init__(
+        self,
+        lm_model: object,
+        adapter: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        stream_layout: StreamLayout,
+    ) -> None:
         self.lm_model = lm_model
         self.adapter = adapter
         self.optimizer = optimizer
+        stream_layout.validate_for_model(lm_model)
+        self.stream_layout = stream_layout
         for parameter in lm_model.parameters():
             parameter.requires_grad_(False)
         lm_model.eval()
@@ -27,7 +36,12 @@ class SemanticPrefixTrainer:
         prefix = self.adapter(batch["plan_token_ids"], batch["plan_attention_mask"])
         output = forward_with_semantic_prefix(self.lm_model, batch["codes"], prefix, batch["prefix_at"])
         losses = agent_only_loss(
-            self.lm_model, output, batch["codes"], batch["agent_target_mask"], audio_weight=audio_weight
+            self.lm_model,
+            output,
+            batch["codes"],
+            batch["agent_target_mask"],
+            self.stream_layout,
+            audio_weight=audio_weight,
         )
         losses.total.backward()
         torch.nn.utils.clip_grad_norm_(self.adapter.parameters(), 1.0)

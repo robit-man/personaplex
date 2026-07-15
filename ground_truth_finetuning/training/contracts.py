@@ -40,6 +40,84 @@ def _string_list(mapping: Mapping[str, Any], key: str) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _stream_index_list(mapping: Mapping[str, Any], key: str) -> tuple[int, ...]:
+    value = mapping.get(key)
+    if not isinstance(value, list) or not value:
+        raise ContractError(f"{key} must be a non-empty list of stream indices")
+    if not all(isinstance(item, int) and item >= 0 for item in value):
+        raise ContractError(f"{key} must contain non-negative integer stream indices")
+    if len(set(value)) != len(value):
+        raise ContractError(f"{key} must not contain duplicate stream indices")
+    return tuple(value)
+
+
+@dataclass(frozen=True)
+class StreamLayout:
+    """The exact global-codebook ownership for a loaded duplex PersonaPlex LM.
+
+    PersonaPlex's 17 streams are not interchangeable.  The canonical Moshi layout
+    has one text stream, eight agent-output Mimi streams, and eight caller-input
+    Mimi streams.  Training must name those groups explicitly because ``dep_q``
+    spans both audio directions in the native model.
+    """
+
+    text_stream_indices: tuple[int, ...]
+    agent_audio_stream_indices: tuple[int, ...]
+    caller_audio_stream_indices: tuple[int, ...]
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "StreamLayout":
+        layout = cls(
+            text_stream_indices=_stream_index_list(value, "text_stream_indices"),
+            agent_audio_stream_indices=_stream_index_list(value, "agent_audio_stream_indices"),
+            caller_audio_stream_indices=_stream_index_list(value, "caller_audio_stream_indices"),
+        )
+        layout.validate_static()
+        return layout
+
+    def as_dict(self) -> dict[str, list[int]]:
+        return {
+            "text_stream_indices": list(self.text_stream_indices),
+            "agent_audio_stream_indices": list(self.agent_audio_stream_indices),
+            "caller_audio_stream_indices": list(self.caller_audio_stream_indices),
+        }
+
+    def validate_static(self) -> None:
+        all_indices = (
+            self.text_stream_indices
+            + self.agent_audio_stream_indices
+            + self.caller_audio_stream_indices
+        )
+        if len(set(all_indices)) != len(all_indices):
+            raise ContractError("stream-layout groups must be disjoint")
+        if len(self.text_stream_indices) != 1:
+            raise ContractError("current native training supports exactly one text stream")
+
+    def validate_for_model(self, lm_model: object) -> None:
+        self.validate_static()
+        expected = set(range(int(lm_model.num_codebooks)))
+        actual = set(
+            self.text_stream_indices
+            + self.agent_audio_stream_indices
+            + self.caller_audio_stream_indices
+        )
+        if actual != expected:
+            raise ContractError(
+                "stream-layout must account for every loaded model codebook exactly once"
+            )
+        if self.text_stream_indices != (0,):
+            raise ContractError("native delayed path currently requires the text stream at index 0")
+        audio_start = int(lm_model.audio_offset)
+        audio_end = audio_start + int(lm_model.dep_q)
+        for stream_index in self.agent_audio_stream_indices + self.caller_audio_stream_indices:
+            if not audio_start <= stream_index < audio_end:
+                raise ContractError("audio stream lies outside the native depformer range")
+
+    def agent_audio_output_indices(self, lm_model: object) -> tuple[int, ...]:
+        self.validate_for_model(lm_model)
+        return tuple(index - int(lm_model.audio_offset) for index in self.agent_audio_stream_indices)
+
+
 @dataclass(frozen=True)
 class Delivery:
     language: str
