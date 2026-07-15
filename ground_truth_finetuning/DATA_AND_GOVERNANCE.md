@@ -128,6 +128,30 @@ An exporter must load the exact target model revision and inspect its runtime co
 
 A code file without a matched encoder revision, layout, and target mask is invalid training input.
 
+### 8.1 Certifiable encoded-artifact contract
+
+The post-codec item adds the following fields to `model_encoding`. Every codebook list is an explicit list of zero-based indices; ranges and inferred stream layouts are prohibited.
+
+```json
+{
+  "model_revision": "pinned-upstream-commit-and-weight-revision",
+  "codebook_layout": {
+    "text": [0],
+    "agent_audio": [1, 2, 3, 4, 5, 6, 7, 8],
+    "caller_audio": [9, 10, 11, 12, 13, 14, 15, 16]
+  },
+  "delay_config_sha256": "sha256:...",
+  "codes_path": "artifacts/codes/example.pt",
+  "codes_sha256": "sha256:...",
+  "target_mask_path": "artifacts/masks/example.pt",
+  "target_mask_sha256": "sha256:...",
+  "text_alignment_path": "artifacts/alignment/example.json",
+  "text_alignment_sha256": "sha256:..."
+}
+```
+
+The tensor validator loads `codes_path` and `target_mask_path`, asserts equal `[K, T]` shape, validates the codebook layout against `K`, and rejects any caller target bit. It also requires at least one supervised agent-text and agent-audio token. The alignment document must identify the same model revision and codes hash and state `verified: true`. A nonempty file, a declared hash, or a metadata-only attestation is not enough.
+
 ## 9. Consent, voice identity, and revocation
 
 Voice data has a separate consent ledger from dialogue content. The ledger names permitted purposes, model families, output distribution, retention period, and revocation mechanism. A revocation triggers a new corpus version excluding the source, derived prompts, cached codec codes, checkpoints that contain it when practical, and all published artifacts governed by the agreement.

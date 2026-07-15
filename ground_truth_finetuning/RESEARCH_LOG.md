@@ -82,3 +82,10 @@ This log separates published facts, local observations, and hypotheses. Entries 
 5. Can a constrained adapter meet useful entity/question compliance without unfreezing PersonaPlex blocks?
 
 No answer is assumed until the corresponding experiment and report exist.
+
+## 2026-07-15: Synthesis evidence and certification design
+
+- **Observed local implementation:** The original `/synthesize` path generated agent-vs-agent text/audio pairs and recorded a heuristic overlap timeline, but did not create a pre-generation typed control plan, distinguish a canonical label from a training input, or require ASR quality for all rendered clips.
+- **Change designed:** Synthesis v2 creates a typed plan before each target turn, appends only plan constraints to the target prompt, and stores target text separately as the canonical label. It records audio hashes, ASR transcript/confidence, optional Whisper segment/word timing, observed pipeline timing, and exclusion reasons.
+- **Scrutiny:** `/synthesize` output first undergoes a fail-closed pre-codec audit. It is still not trainable until the tensor-level `certify_corpus` gate loads the pinned PersonaPlex codes/mask/alignment artifacts.
+- **Current status:** No actual corpus or checkpoint has received a pre-codec or tensor-level certificate. The new tooling defines the evidence path; it does not constitute evidence itself.

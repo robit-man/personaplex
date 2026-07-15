@@ -103,6 +103,7 @@ For each run, archive an event timeline with audio hashes, not raw sensitive aud
 
 Live Twilio tests are permitted only with authorized test numbers, synthetic content, approved voices, and explicit monitoring. They require:
 
+- The corpus's tensor-level certificate status is `certified_for_adapter_training` for any checkpoint being exercised.
 - All offline and emulated-Twilio required cases pass.
 - A rollback to safe fallback is tested.
 - Administrative access and observability are confirmed.

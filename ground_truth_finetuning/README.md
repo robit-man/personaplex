@@ -38,6 +38,7 @@ This program covers the training and runtime work required to turn PersonaPlex i
 | [RUNTIME_CONTROL.md](RUNTIME_CONTROL.md) | Versioned control protocol, call-state semantics, strict fallback, and operational safety. |
 | [VOICE_AND_PROSODY.md](VOICE_AND_PROSODY.md) | Voice-prompt strategy, prosody workflow, and consented teacher integrations. |
 | [EVALUATION.md](EVALUATION.md) | Offline, replay, emulated-Twilio, and live promotion gates. |
+| [CERTIFICATION.md](CERTIFICATION.md) | Fail-closed corpus certification gates and certificate semantics. |
 | [RESEARCH_LOG.md](RESEARCH_LOG.md) | Dated evidence, references, verified observations, and open investigations. |
 | [REFERENCES.md](REFERENCES.md) | Claim-level primary-source register and applicability limits. |
 | [DECISIONS.md](DECISIONS.md) | Architecture decisions and explicitly rejected shortcuts. |
@@ -58,6 +59,7 @@ A stage can advance only when all of the following are true:
 
 - The code, config, environment lock, data manifest hashes, and metrics report are versioned.
 - The stage's holdout split was not selected, hand-edited, or used to tune the candidate.
+- The corpus has a `certified_for_adapter_training` certificate from the tensor-level validator; `passed_precodec_only` is not trainable status.
 - Required semantic, latency, interruption, and safety metrics meet their documented threshold.
 - The fallback behavior is tested and remains available.
 - Any deviation has an approved decision entry in `DECISIONS.md`.
