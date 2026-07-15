@@ -53,6 +53,8 @@ def forward_with_semantic_prefix(
     codes: Tensor,
     prefix_embeddings: Tensor,
     prefix_at: Tensor | int,
+    *,
+    activation_checkpointing: bool = True,
 ) -> NativePrefixOutput:
     """Runs native training logic with a prefix inserted before the next agent turn.
 
@@ -88,7 +90,16 @@ def forward_with_semantic_prefix(
         ],
         dim=1,
     )
-    transformer_all, text_all = lm_model.forward_embeddings(injected)
+    if activation_checkpointing:
+        from torch.utils.checkpoint import checkpoint
+
+        transformer_all, text_all = checkpoint(
+            lambda embeddings: lm_model.forward_embeddings(embeddings),
+            injected,
+            use_reentrant=False,
+        )
+    else:
+        transformer_all, text_all = lm_model.forward_embeddings(injected)
     transformer_out = _drop_inserted_prefix(transformer_all, prefix_at_int, prefix_embeddings.shape[1])
     text_logits = _drop_inserted_prefix(text_all, prefix_at_int, prefix_embeddings.shape[1])
     audio_logits = lm_model.forward_depformer_training(target_codes, transformer_out)

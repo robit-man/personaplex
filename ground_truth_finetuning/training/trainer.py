@@ -17,12 +17,15 @@ class SemanticPrefixTrainer:
         adapter: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         stream_layout: StreamLayout,
+        *,
+        activation_checkpointing: bool = True,
     ) -> None:
         self.lm_model = lm_model
         self.adapter = adapter
         self.optimizer = optimizer
         stream_layout.validate_for_model(lm_model)
         self.stream_layout = stream_layout
+        self.activation_checkpointing = activation_checkpointing
         for parameter in lm_model.parameters():
             parameter.requires_grad_(False)
         lm_model.eval()
@@ -34,7 +37,13 @@ class SemanticPrefixTrainer:
             raise ValueError(f"batch missing required fields: {sorted(missing)}")
         self.optimizer.zero_grad(set_to_none=True)
         prefix = self.adapter(batch["plan_token_ids"], batch["plan_attention_mask"])
-        output = forward_with_semantic_prefix(self.lm_model, batch["codes"], prefix, batch["prefix_at"])
+        output = forward_with_semantic_prefix(
+            self.lm_model,
+            batch["codes"],
+            prefix,
+            batch["prefix_at"],
+            activation_checkpointing=self.activation_checkpointing,
+        )
         losses = agent_only_loss(
             self.lm_model,
             output,
