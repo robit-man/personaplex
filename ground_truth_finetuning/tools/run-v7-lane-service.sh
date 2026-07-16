@@ -10,7 +10,7 @@ case "$lane" in
   0)
     physical_gpu=0
     resource_root="/srv/voxrn_cache/personaplex-lanes/gpu0"
-    voicebox_url="http://127.0.0.1:17500"
+    voicebox_port=17500
     # The independent semantic plane is the resident 35B model on GPU 2;
     # dialogue remains on the local GPU-0 PersonaPlex-control model.
     inference_model="robit/ornith:35b"
@@ -23,7 +23,7 @@ case "$lane" in
   1)
     physical_gpu=1
     resource_root="/srv/voxrn_cache/personaplex-lanes/gpu1"
-    voicebox_url="http://127.0.0.1:17501"
+    voicebox_port=17501
     # Keep the semantic judge independent of the GPU-1 dialogue model.
     inference_model="personaplex-control-ornith:35b"
     inference_endpoint="http://127.0.0.1:12080/v1/chat/completions"
@@ -35,7 +35,7 @@ case "$lane" in
   2)
     physical_gpu=2
     resource_root="/srv/voxrn_cache/personaplex-lanes/gpu2"
-    voicebox_url="http://127.0.0.1:17502"
+    voicebox_port=17502
     # The independent semantic plane is the resident GPU-0 control model.
     inference_model="personaplex-control-ornith:35b"
     inference_endpoint="http://127.0.0.1:12080/v1/chat/completions"
@@ -74,11 +74,24 @@ set -a
 source ./.env
 set +a
 
+# Do not set VOICEBOX_BASE_URL here. It marks Voicebox as an externally
+# managed service and makes the renderer fail closed when no listener owns
+# the lane port. The Voryn renderer owns a local child instead, waits for
+# /health, and verifies the CUDA A100 before rendering any training audio.
+# Synthetic targets, typed control frames, and semantic judges must come from
+# the deeper language model. The PersonaPlex-control checkpoint is the audio-
+# plane adaptation target, not an upstream corpus author. The renderer remains
+# independently pinned to this lane's physical CUDA device.
 exec env \
   CUDA_DEVICE_ORDER=PCI_BUS_ID \
   CUDA_VISIBLE_DEVICES="$physical_gpu" \
   VOXRN_RESOURCE_ROOT="$resource_root" \
-  VOICEBOX_BASE_URL="$voicebox_url" \
+  VOICEBOX_BASE_URL= \
+  VOICEBOX_URL= \
+  VOICEBOX_PORT="$voicebox_port" \
+  VOICEBOX_RETAIN_LOADED_MODELS=1 \
+  VOICEBOX_REQUEST_TIMEOUT_MS=240000 \
+  VOICEBOX_START_TIMEOUT_MS=240000 \
   SYNTHESIS_PLAN_PATH="$PLAN_PATH" \
   SYNTHESIS_LANE_INDEX="$lane" \
   SYNTHESIS_LANE_COUNT=3 \
@@ -93,26 +106,27 @@ exec env \
   SYNTHESIS_MAX_ASR_WER=0.25 \
   SYNTHESIS_PIPELINE_NAMESPACE=v7-final \
   SYNTHESIZE_INFERENCE_PROVIDER=ollama \
-  SYNTHESIZE_INFERENCE_MODEL="$inference_model" \
-  SYNTHESIZE_INFERENCE_ENDPOINT="$inference_endpoint" \
+  SYNTHESIZE_INFERENCE_TIMEOUT_MS=150000 \
+  SYNTHESIZE_INFERENCE_MODEL=robit/ornith:35b \
+  SYNTHESIZE_INFERENCE_ENDPOINT=http://127.0.0.1:12084/v1/chat/completions \
   SYNTHESIZE_CONTROL_VERIFIER_FALLBACK_PROVIDER=ollama \
-  SYNTHESIZE_CONTROL_VERIFIER_FALLBACK_MODEL="$verifier_fallback_model" \
-  SYNTHESIZE_CONTROL_VERIFIER_FALLBACK_ENDPOINT="$verifier_fallback_endpoint" \
+  SYNTHESIZE_CONTROL_VERIFIER_FALLBACK_MODEL=robit/ornith:35b \
+  SYNTHESIZE_CONTROL_VERIFIER_FALLBACK_ENDPOINT=http://127.0.0.1:12084/v1/chat/completions \
   SYNTHESIZE_CONTROL_ENVELOPE_REPAIR_PROVIDER=ollama \
-  SYNTHESIZE_CONTROL_ENVELOPE_REPAIR_MODEL="$verifier_fallback_model" \
-  SYNTHESIZE_CONTROL_ENVELOPE_REPAIR_ENDPOINT="$verifier_fallback_endpoint" \
+  SYNTHESIZE_CONTROL_ENVELOPE_REPAIR_MODEL=robit/ornith:35b \
+  SYNTHESIZE_CONTROL_ENVELOPE_REPAIR_ENDPOINT=http://127.0.0.1:12084/v1/chat/completions \
   SYNTHESIZE_EVIDENCE_ENVELOPE_REPAIR_PROVIDER=ollama \
-  SYNTHESIZE_EVIDENCE_ENVELOPE_REPAIR_MODEL="$verifier_fallback_model" \
-  SYNTHESIZE_EVIDENCE_ENVELOPE_REPAIR_ENDPOINT="$verifier_fallback_endpoint" \
+  SYNTHESIZE_EVIDENCE_ENVELOPE_REPAIR_MODEL=robit/ornith:35b \
+  SYNTHESIZE_EVIDENCE_ENVELOPE_REPAIR_ENDPOINT=http://127.0.0.1:12084/v1/chat/completions \
   SYNTHESIZE_DIALOGUE_INFERENCE_PROVIDER=ollama \
-  SYNTHESIZE_DIALOGUE_INFERENCE_MODEL="$dialogue_model" \
-  SYNTHESIZE_DIALOGUE_INFERENCE_ENDPOINT="$dialogue_endpoint" \
+  SYNTHESIZE_DIALOGUE_INFERENCE_MODEL=robit/ornith:35b \
+  SYNTHESIZE_DIALOGUE_INFERENCE_ENDPOINT=http://127.0.0.1:12084/v1/chat/completions \
   SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_PROVIDER=ollama \
-  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_MODEL="$inference_model" \
-  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_ENDPOINT="$inference_endpoint" \
+  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_MODEL=robit/ornith:35b \
+  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_ENDPOINT=http://127.0.0.1:12084/v1/chat/completions \
   SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_FALLBACK_PROVIDER=ollama \
-  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_FALLBACK_MODEL="$verifier_fallback_model" \
-  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_FALLBACK_ENDPOINT="$verifier_fallback_endpoint" \
+  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_FALLBACK_MODEL=robit/ornith:35b \
+  SYNTHESIZE_DIALOGUE_ENVELOPE_REPAIR_FALLBACK_ENDPOINT=http://127.0.0.1:12084/v1/chat/completions \
   SYNTHESIZE_TARGET_TEMPERATURE=0.12 \
   SYNTHESIZE_CALLER_TEMPERATURE=0.40 \
   SYNTHESIZE_PLANNER_MAX_TOKENS=500 \
