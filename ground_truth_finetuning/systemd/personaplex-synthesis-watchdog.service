@@ -1,0 +1,7 @@
+[Unit]
+Description=PersonaPlex synthesis lane health watchdog
+
+[Service]
+Type=oneshot
+ExecStart=/srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/personaplex-synthesis-watchdog.sh
+

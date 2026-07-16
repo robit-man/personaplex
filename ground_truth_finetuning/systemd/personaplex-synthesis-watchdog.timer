@@ -1,0 +1,11 @@
+[Unit]
+Description=Run PersonaPlex synthesis watchdog every 10 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+Persistent=true
+Unit=personaplex-synthesis-watchdog.service
+
+[Install]
+WantedBy=timers.target
