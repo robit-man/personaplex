@@ -135,6 +135,15 @@ strict duplex export before native encoding.
   integrity-verified but explicitly non-trainable; no DDP launch/checkpoint or
   runtime-with-trained-adapter claim has been made.
 
+## Runtime control state-machine regression
+
+- A target-wording-free typed-frame test verifies that a revision is queued,
+  applied only at a matching boundary, then invalidated on barge-in. The test
+  observes evidence cancellation, rejects reapplication of the superseded
+  revision, and permits a newer revision to apply. It does not substitute a
+  fake adapter for the CUDA trained-adapter harness; that harness remains
+  blocked on the corpus/training gate.
+
 ## Next gate
 
 Continue independent V4 paired generation until one lineage-indexed aggregate
