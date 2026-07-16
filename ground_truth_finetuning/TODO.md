@@ -141,6 +141,19 @@ must never be committed as evidence.
 
 ## Gate 2: Synthetic conversation semantics and diversity
 
+- [~] Implement the agent-operable diverse synthesis cascade: a versioned request
+  expands into 50 topic cards, 20 scenario contracts per topic, 10 trajectory seeds
+  per scenario, deterministic quota-selected groups, and model-generated causal pair
+  specifications without target-label leakage.
+  Proof: `DIVERSE_SYNTHESIS_CASCADE_CONTRACT.md`,
+  `schemas/diverse_corpus_request.schema.json`,
+  `schemas/diverse_cascade_artifacts.schema.json`,
+  `tools/build_diverse_synthesis_cascade.py`, and
+  `tools/validate_diverse_synthesis_cascade.py`.
+  Required remaining proof: a full 10,000-unit planning run, structural validation
+  report, Voryn bridge export, and independent source certification of the selected
+  500 counterfactual groups.
+
 - [x] The 1,000-conversation plan allocates 48 approved voices, 1,128 possible
   unordered pairs, varied topics, openings, closings, coverage profiles, and seeds.
   Proof: `/srv/personaplex_workspace/ground_truth_runs/personaplex-1000-plan.jsonl`.

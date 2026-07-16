@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "personaplex.diverse-corpus-request.v1",
+  "title": "DiverseCorpusRequestV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "requestId",
+    "seedRevision",
+    "seedIdeas",
+    "coverageTarget",
+    "allowedVoicesManifest",
+    "renderer",
+    "asr",
+    "allowedPhysicalCudaDevices",
+    "prohibitedContentPolicyRevision"
+  ],
+  "properties": {
+    "schema": {"const": "personaplex.diverse-corpus-request.v1"},
+    "requestId": {"type": "string", "minLength": 8, "maxLength": 160},
+    "seedRevision": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "seedIdeas": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": {"type": "string", "minLength": 3, "maxLength": 1000}
+    },
+    "topicConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include": {"type": "array", "items": {"type": "string", "maxLength": 160}},
+        "exclude": {"type": "array", "items": {"type": "string", "maxLength": 160}}
+      }
+    },
+    "coverageTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidateTopics", "scenariosPerTopic", "trajectorySeedsPerScenario", "selectedCounterfactualGroups", "branchesPerGroup"],
+      "properties": {
+        "candidateTopics": {"type": "integer", "minimum": 1, "maximum": 200},
+        "scenariosPerTopic": {"type": "integer", "minimum": 1, "maximum": 100},
+        "trajectorySeedsPerScenario": {"type": "integer", "minimum": 1, "maximum": 100},
+        "selectedCounterfactualGroups": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "branchesPerGroup": {"const": 2}
+      }
+    },
+    "allowedVoicesManifest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "renderer": {"const": "voicebox_chatterbox_turbo"},
+    "asr": {"const": "whisper"},
+    "allowedPhysicalCudaDevices": {"const": [0, 1, 2]},
+    "requestedAdditions": {"type": "array", "items": {"type": "string", "maxLength": 1000}},
+    "prohibitedContentPolicyRevision": {"type": "string", "minLength": 1, "maxLength": 240}
+  }
+}

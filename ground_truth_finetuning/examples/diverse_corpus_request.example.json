@@ -1,0 +1,28 @@
+{
+  "schema": "personaplex.diverse-corpus-request.v1",
+  "requestId": "personaplex-diverse-v1-20260716",
+  "seedRevision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "seedIdeas": [
+    "public-transit rider feedback",
+    "neighbors repairing a misunderstanding",
+    "technical project handoff",
+    "casual conversation after a recent move"
+  ],
+  "topicConstraints": {
+    "include": ["casual", "service", "technical", "interview", "community"],
+    "exclude": ["identity verification", "political persuasion", "unconsented impersonation"]
+  },
+  "coverageTarget": {
+    "candidateTopics": 50,
+    "scenariosPerTopic": 20,
+    "trajectorySeedsPerScenario": 10,
+    "selectedCounterfactualGroups": 500,
+    "branchesPerGroup": 2
+  },
+  "allowedVoicesManifest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "renderer": "voicebox_chatterbox_turbo",
+  "asr": "whisper",
+  "allowedPhysicalCudaDevices": [0, 1, 2],
+  "requestedAdditions": ["more technical repair", "more brief casual exchanges"],
+  "prohibitedContentPolicyRevision": "personaplex-safe-synthesis-v1"
+}
