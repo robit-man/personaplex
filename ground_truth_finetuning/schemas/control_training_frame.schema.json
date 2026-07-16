@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PersonaPlex ControlTrainingFrame v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "frameId", "conversationId", "targetTurnId", "stateRevision", "baseStateHash", "stateHash", "semanticSources", "state", "update", "turnTaking", "plan"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "frameId": {"type": "string", "minLength": 1},
+    "conversationId": {"type": "string", "minLength": 1},
+    "targetTurnId": {"type": "integer", "minimum": 0},
+    "stateRevision": {"type": "integer", "minimum": 1},
+    "baseStateHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "stateHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "semanticSources": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["state_reducer", "policy_agent", "task_agent", "knowledge_agent", "safety_agent"]}},
+    "state": {"type": "object"},
+    "update": {"type": "object", "required": ["reason", "applyAt", "expiresAtMs"], "properties": {"reason": {"type": "string"}, "applyAt": {"const": "next_agent_turn_boundary"}, "expiresAtMs": {"type": "integer", "minimum": 250, "maximum": 30000}}},
+    "turnTaking": {"type": "object"},
+    "plan": {"$ref": "control_plan.schema.json"}
+  }
+}

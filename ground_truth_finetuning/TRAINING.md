@@ -135,3 +135,44 @@ Immediately stop a run and mark it invalid if:
 - The model loses turn-taking behavior or produces persistent unintended audio.
 - A data-rights, consent, or redaction defect is discovered.
 - The candidate only improves on training data or on scenarios used to hand-tune prompts.
+
+## 9. Full-duplex control curriculum
+
+The corpus is stratified by interaction trajectory, not only subject domain:
+cooperative resolution, conditional compliance, evidence-seeking, resistance and
+repair, misunderstanding recovery, policy-constrained escalation, handoff, and
+time pressure. Each split preserves voice-pair and conversation-lineage isolation.
+
+For interruption items, the source timeline supplies separate caller and agent
+tracks, overlap intervals, barge-in time, agent audible cutoff, cancellation
+latency, and a subsequent recovery frame. The exporter masks discarded agent
+audio after cutoff and never supervises caller channels. Evaluation reports
+interruption detection, cancellation latency, recovery relevance, stale-plan
+rejection, and post-recovery control adherence separately from ordinary response
+quality.
+
+The semantic-prefix adapter consumes the versioned `ControlTrainingFrame`
+serializer rather than unstructured JSON. Training aborts if a validator finds a
+canonical response field anywhere in a frame or if the plan context hash differs
+from the frame state hash.
+# Certified controlled-duplex export
+
+Voryn `voxrn.synthetic-conversation.v3` records must be exported before any
+PersonaPlex codec/token training. The exporter materializes a 24 kHz stereo
+timeline with agent audio on channel 0 and caller audio on channel 1. It crops
+every interrupted agent render at `audibleEndedAtMs`, preserves caller overlap,
+and emits the `ControlTrainingFrame` separately from target text/audio labels.
+
+```bash
+python3 ground_truth_finetuning/tools/export_controlled_duplex_dataset.py \
+  /srv/voxrn_cache/datasets/synthesize \
+  --output-dir /srv/voxrn_cache/personaplex/exports/controlled-duplex
+python3 ground_truth_finetuning/tools/validate_controlled_duplex_dataset.py \
+  /srv/voxrn_cache/personaplex/exports/controlled-duplex
+```
+
+The exporter is strict by default. A conversation advertising high interruption
+coverage is rejected unless it includes an actual caller overlap before the
+agent's rendered tail and a subsequent control-marked recovery agent turn. Use
+`--allow-incomplete` only for diagnostic audio inspection; those records never
+enter `examples.jsonl` and are not training material.

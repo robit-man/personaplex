@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+GTFT_TOOL_ROOT = Path(__file__).resolve().parents[2]
+if str(GTFT_TOOL_ROOT) not in sys.path:
+    sys.path.insert(0, str(GTFT_TOOL_ROOT))
+
 import argparse
 from datetime import datetime, timezone
 import json
@@ -33,8 +39,12 @@ def main() -> int:
     parser.add_argument("--max-utilization-pct", type=int, default=25)
     parser.add_argument("--allow-gpu", action="append", type=int, default=None)
     parser.add_argument("--max-steps", type=int, default=8)
+    parser.add_argument("--checkpoint-every", type=int, default=100)
+    parser.add_argument("--eval-examples", type=int, default=32)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
+    if args.max_steps < 1 or args.checkpoint_every < 1 or args.eval_examples < 1:
+        raise SystemExit("max-steps, checkpoint-every, and eval-examples must be positive")
     run_root = args.run_root.resolve()
     if run_root.exists():
         raise SystemExit(f"refusing existing run root: {run_root}")
@@ -66,6 +76,8 @@ def main() -> int:
         "--tokenizer-path", str(args.tokenizer_path.resolve()),
         "--run-dir", str((run_root / "training").resolve()),
         "--max-steps", str(args.max_steps),
+        "--checkpoint-every", str(args.checkpoint_every),
+        "--eval-examples", str(args.eval_examples),
     ]
     run_manifest = {
         "schema_version": 1,

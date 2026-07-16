@@ -102,9 +102,24 @@ Twilio media control has transport-specific consequences:
 
 ## 7. Current implementation truth
 
-The repository currently contains an experimental websocket bridge and PersonaPlex server overlay for versioned control messages. It is not yet an established semantic-prefix runtime. A direct in-container control test sent an update, boundary, and silence prefill but timed out waiting for `control_ack`. Therefore no component may report the revision as applied or describe the current path as proven semantic control.
+The fork now contains an executable, pinned-upstream overlay:
+`personaplex_control.controlled_server` targets upstream PersonaPlex commit
+`3428dfd95309a7f3c84fd93259ded0f810d1ff91`. It accepts V2 typed control
+messages on binary kind `0x04`, emits acknowledgements on kind `0x05`, and
+uses `SemanticPrefixProvider` to encode a `ControlTrainingFrame` once on GPU,
+cache it by `frameHash`, and prefill the live `LMModel.forward_embeddings`
+stream at a confirmed caller boundary. Prefix outputs are discarded; they are
+not rendered as audio or injected as a system prompt.
 
-The next runtime task, after the adapter and harness exist, is an isolated protocol test that records every transition above and fails on a missing terminal acknowledgement. Only then should the Twilio emulation harness exercise it.
+This implementation is deliberately **unverified** until
+`evaluation/runtime_prefix_harness.py` passes on CUDA with a trained adapter,
+the actual pinned Moshi checkpoint, and a batch-certified V2 frame. Until that
+artifact exists, the runtime must remain experimental and no deployment may
+claim applied semantic control.
+
+The harness is the next gate. It fails unless `queued` is followed by
+`applied`, where `applied` is emitted only after direct transformer prefill and
+includes the adapter revision plus build/prefill timing.
 
 ## 8. Observability
 
@@ -125,3 +140,18 @@ Do not log raw transcripts, phone numbers, sensitive entity values, canonical te
 - Guardrail rejection: record typed reason, then use policy-approved fallback.
 - Codec/stream failure: stop media and transfer/end per call policy.
 - Observability failure: the call may continue only in a safe non-controlled mode; do not claim compliance that cannot be measured.
+
+## 10. Rolling state and multi-agent authority
+
+The semantic plane maintains a per-call `SemanticState` tree. State reducer,
+task, policy, knowledge, and safety agents may propose bounded patches; only the
+state reducer emits a monotonic revision with a base-state hash and new-state
+hash. A `ControlTrainingFrame` is derived from that revision and contains the
+typed plan to apply at the next agent boundary. Raw agent prompts, target wording,
+and unbounded tool output are not accepted on the audio-plane control channel.
+
+On caller barge-in, the bridge immediately clears unsent agent media, records the
+audible cutoff, invalidates any pending frame based on the prior state, and emits
+an interruption event to the reducer. The following response requires a fresh
+state revision and `control.ack status=applied`; a stale plan cannot resume after
+the caller has changed the conversational context.

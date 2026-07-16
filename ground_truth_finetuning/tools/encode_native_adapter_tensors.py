@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+GTFT_TOOL_ROOT = Path(__file__).resolve().parents[2]
+if str(GTFT_TOOL_ROOT) not in sys.path:
+    sys.path.insert(0, str(GTFT_TOOL_ROOT))
+
 import argparse
 from hashlib import sha256
 import json
@@ -64,6 +70,9 @@ def load_contract(path: Path) -> tuple[dict[str, Any], StreamLayout]:
     value = json.loads(path.read_text())
     required = {
         "model_revision",
+        "moshi_weights_sha256",
+        "mimi_weights_sha256",
+        "tokenizer_sha256",
         "num_codebooks",
         "audio_offset",
         "dep_q",
@@ -86,6 +95,21 @@ def load_contract(path: Path) -> tuple[dict[str, Any], StreamLayout]:
     if expected_delay_hash != value["delay_config_sha256"]:
         raise ValueError("native model delay hash does not match delays")
     return value, layout
+
+
+def require_codec_artifacts(contract: dict[str, Any], mimi_path: Path, tokenizer_path: Path) -> dict[str, str]:
+    """Bind native codes to the inspected codec and text tokenizer bytes."""
+    expected_mimi = contract.get("mimi_weights_sha256")
+    expected_tokenizer = contract.get("tokenizer_sha256")
+    if not isinstance(expected_mimi, str) or not isinstance(expected_tokenizer, str):
+        raise ValueError("native model contract lacks Mimi/tokenizer hashes")
+    actual_mimi = hash_file(mimi_path)
+    actual_tokenizer = hash_file(tokenizer_path)
+    if actual_mimi != expected_mimi:
+        raise ValueError("Mimi weights do not match the inspected native model contract")
+    if actual_tokenizer != expected_tokenizer:
+        raise ValueError("SentencePiece tokenizer does not match the inspected native model contract")
+    return {"mimi_weights_sha256": actual_mimi, "tokenizer_sha256": actual_tokenizer}
 
 
 def require_upstream_revision(root: Path) -> None:
@@ -170,6 +194,9 @@ def main() -> int:
     contract, layout = load_contract(args.model_contract.resolve())
     if not args.mimi_path.is_file() or not args.tokenizer_path.is_file():
         raise SystemExit("Mimi weights and text tokenizer are required")
+    codec_artifacts = require_codec_artifacts(
+        contract, args.mimi_path.resolve(), args.tokenizer_path.resolve()
+    )
     sys.path.insert(0, str(args.moshi_source_root.resolve()))
     import sentencepiece
     from moshi.models.loaders import get_mimi
@@ -253,6 +280,7 @@ def main() -> int:
             "prefix_at": prefix_at,
             "frame_rate": float(mimi.frame_rate),
             "stream_layout": layout.as_dict(),
+            "codec": {**codec_artifacts, "frame_rate_hz": float(mimi.frame_rate)},
         }
         (artifact_root / alignment_rel).write_text(json.dumps(alignment, indent=2, sort_keys=True) + "\n")
         updated = dict(source_row)
@@ -264,6 +292,7 @@ def main() -> int:
                 "caller_audio": list(layout.caller_audio_stream_indices),
             },
             "delay_config_sha256": contract["delay_config_sha256"],
+            "codec": {**codec_artifacts, "frame_rate_hz": float(mimi.frame_rate)},
             "codes_path": str(tensor_rel),
             "codes_sha256": code_hash,
             "target_mask_path": str(mask_rel),
@@ -285,6 +314,7 @@ def main() -> int:
         "manifest": str(encoded_path),
         "manifest_sha256": hash_file(encoded_path),
         "stream_layout": layout.as_dict(),
+        "codec": codec_artifacts,
     }
     (artifact_root / "encoding_report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(json.dumps({"status": report["status"], "items": report["items"]}))

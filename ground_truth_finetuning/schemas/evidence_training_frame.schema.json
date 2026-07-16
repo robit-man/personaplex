@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxrn.com/schemas/personaplex/evidence-training-frame.v1.json",
+  "title": "PersonaPlex delayed evidence training frame",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "evidenceId", "conversationId", "targetTurnId", "evidenceRevision", "supportsControlRevision", "contextHash", "postEvidenceStateHash", "availability", "provenance", "allowedClaims", "timing", "counterfactual", "plan"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "evidenceId": {"type": "string", "minLength": 1},
+    "conversationId": {"type": "string", "minLength": 1},
+    "targetTurnId": {"type": "integer", "minimum": 0},
+    "evidenceRevision": {"type": "integer", "minimum": 1},
+    "supportsControlRevision": {"type": "integer", "minimum": 0},
+    "contextHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "postEvidenceStateHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "availability": {"enum": ["ready", "failed", "expired"]},
+    "provenance": {"type": "object", "minProperties": 1},
+    "allowedClaims": {"type": "array", "items": {"type": "string", "minLength": 1}, "maxItems": 32},
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applyAt", "evidenceAvailableAtMs", "agentStartAtMs"],
+      "properties": {
+        "applyAt": {"const": "next_agent_turn_boundary"},
+        "evidenceAvailableAtMs": {"type": "integer", "minimum": 0},
+        "agentStartAtMs": {"type": "integer", "minimum": 0}
+      }
+    },
+    "counterfactual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groupId", "branchId", "changedField"],
+      "properties": {
+        "groupId": {"type": "string", "minLength": 1},
+        "branchId": {"type": "string", "minLength": 1},
+        "changedField": {"type": "string", "minLength": 1}
+      }
+    },
+    "plan": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "not": {
+        "anyOf": [
+          {"required": ["canonicalText"]},
+          {"required": ["canonical_text"]},
+          {"required": ["targetText"]},
+          {"required": ["target_text"]},
+          {"required": ["response"]},
+          {"required": ["reply"]},
+          {"required": ["verbatim"]}
+        ]
+      }
+    }
+  ]
+}

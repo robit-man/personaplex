@@ -196,3 +196,36 @@ The following are not acceptable substitutes for this design:
 - Passing canonical target wording into the training control feature.
 - Hardcoding seventeen codebooks because one checkpoint used that configuration.
 - Declaring control because a websocket accepted a message without an applied-revision acknowledgement.
+
+## 10. ControlTrainingFrame and rolling semantic state
+
+The training unit is a `ControlTrainingFrame`, not an appended prompt and not a
+canonical response. A frame contains a hash-linked immutable snapshot of the
+rolling call tree, the semantic agents that contributed it, the typed plan for
+the forthcoming agent turn, expiry, and the expected turn-taking behavior.
+
+The call tree contains only bounded semantic fields: phase, objective,
+commitments, unresolved items, policy boundaries, compliance/resistance posture,
+and repair posture. It is updated by a state reducer after every audible event.
+Task, policy, knowledge, and safety agents submit typed patches to that reducer;
+the reducer emits the next state revision. The runtime validates the base hash,
+new hash, revision, and expiry before deriving the plan prefix.
+
+`ControlTrainingFrame` serializes state and plan in a fixed typed order. Target
+wording, canonical responses, reply fields, and verbatim fields are rejected at
+schema validation. The adapter sees the frame before an agent turn; the target
+text/audio remains a label only.
+
+## 11. Full-duplex interruption and recovery
+
+Training examples preserve two independently aligned tracks. An agent may be
+interrupted only when its control policy permits yielding. The timeline records
+the barge-in point, cancellation latency, audible end of agent media, and the
+recovery expectation. Audio queued after the audible end is discarded from the
+agent target mask. The caller's interjection is conditioned on the audible prefix
+only, and the next agent turn receives a new post-interruption frame.
+
+This makes a barge-in causal: it is neither a textual label pasted onto a
+sequential transcript nor a target that asks the model to learn unheard speech.
+Offline synthesis may initially use separately rendered mono clips, but the
+exporter must materialize the declared duplex timeline before Mimi encoding.

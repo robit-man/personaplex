@@ -94,3 +94,25 @@ revision. It must consume control frames separately from audio frames and
 return an acknowledgement. It must not use an arbitrary low-energy audio chunk
 as an implicit safe reset point. The Voryn bridge owns PSTN conversion; the
 server extension owns model state; the semantic service owns policy and tools.
+
+## Native prefix application
+
+The controlled runtime is pinned to upstream PersonaPlex commit
+`3428dfd95309a7f3c84fd93259ded0f810d1ff91`. At a valid caller boundary it
+does not replace PersonaPlex's text prompt or reset its duplex state. Instead:
+
+1. `control.update` carries a V2 `ControlTrainingFrame`, a matching state
+   revision/context hash, and an absolute expiry time.
+2. The server validates the target-wording-free frame, serializes it with the
+   same `PlanSerializer` used by training, and caches the adapter's `K` GPU
+   virtual embeddings by `frameHash`.
+3. At `control.boundary`, it verifies the current state hash, feeds those `K`
+   embeddings through `LMModel.forward_embeddings` one causal frame at a time,
+   discards all prefix outputs, and preserves the existing streaming cache.
+4. Only then does it emit `control.ack status=applied` and permit media tagged
+   with the new generation ID. A new boundary or caller barge-in invalidates
+   queued media and the active generation ID.
+
+The extension uses binary message `0x04` for control input and `0x05` for
+acknowledgements. This is a causal model input path. It remains experimental
+until the CUDA-native prefix harness and full Twilio emulation gate pass.
