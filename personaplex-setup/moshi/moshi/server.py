@@ -146,18 +146,28 @@ class ServerState:
         # self.lm_gen.top_k = max(1, int(request.query["audio_topk"]))
         
         # Construct full voice prompt path
+        text_prompt = request.query.get("text_prompt", "")
+        voice_prompt_filename = request.query.get("voice_prompt", "")
         requested_voice_prompt_path = None
         voice_prompt_path = None
         if self.voice_prompt_dir is not None:
-            voice_prompt_filename = request.query["voice_prompt"]
-            requested_voice_prompt_path = None
-            if voice_prompt_filename is not None:
+            if voice_prompt_filename:
                 requested_voice_prompt_path = os.path.join(self.voice_prompt_dir, voice_prompt_filename)
-            # If the voice prompt file does not exist, find a valid (s0) voiceprompt file in the directory
             if requested_voice_prompt_path is None or not os.path.exists(requested_voice_prompt_path):
-                raise FileNotFoundError(
-                    f"Requested voice prompt '{voice_prompt_filename}' not found in '{self.voice_prompt_dir}'"
+                voice_prompt_files = sorted(
+                    os.path.join(self.voice_prompt_dir, name)
+                    for name in os.listdir(self.voice_prompt_dir)
+                    if name.endswith((".pt", ".wav", ".flac", ".mp3"))
                 )
+                if not voice_prompt_files:
+                    raise FileNotFoundError(f"No voice prompt files found in '{self.voice_prompt_dir}'")
+                voice_prompt_path = voice_prompt_files[0]
+                if voice_prompt_filename:
+                    clog.log(
+                        "warning",
+                        f"Requested voice prompt '{voice_prompt_filename}' not found in "
+                        f"'{self.voice_prompt_dir}', using '{os.path.basename(voice_prompt_path)}'",
+                    )
             else:
                 voice_prompt_path = requested_voice_prompt_path
                 
@@ -167,8 +177,8 @@ class ServerState:
                 self.lm_gen.load_voice_prompt_embeddings(voice_prompt_path)
             else:
                 self.lm_gen.load_voice_prompt(voice_prompt_path)
-        self.lm_gen.text_prompt_tokens = self.text_tokenizer.encode(wrap_with_system_tags(request.query["text_prompt"])) if len(request.query["text_prompt"]) > 0 else None
-        seed = int(request["seed"]) if "seed" in request.query else None
+        self.lm_gen.text_prompt_tokens = self.text_tokenizer.encode(wrap_with_system_tags(text_prompt)) if len(text_prompt) > 0 else []
+        seed = int(request.query["seed"]) if "seed" in request.query else None
 
         async def recv_loop():
             nonlocal close
@@ -251,9 +261,9 @@ class ServerState:
                     await ws.send_bytes(b"\x01" + msg)
 
         clog.log("info", "accepted connection")
-        if len(request.query["text_prompt"]) > 0:
-            clog.log("info", f"text prompt: {request.query['text_prompt']}")
-        if len(request.query["voice_prompt"]) > 0:
+        if len(text_prompt) > 0:
+            clog.log("info", f"text prompt: {text_prompt}")
+        if len(voice_prompt_filename) > 0:
             clog.log("info", f"voice prompt: {voice_prompt_path} (requested: {requested_voice_prompt_path})")
         close = False
         async with self.lock:

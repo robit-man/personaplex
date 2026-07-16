@@ -120,6 +120,8 @@ class NF4Matrix(nn.Module):
             raise RuntimeError("PersonaPlex direct NF4 only accepts CUDA activations")
         if values.shape[-1] != self.columns:
             raise RuntimeError(f"NF4 matrix expected {self.columns} input features, got {values.shape[-1]}")
+        if values.dtype != self.scales.dtype:
+            values = values.to(dtype=self.scales.dtype)
         count = self.rows - row_offset if row_count is None else row_count
         output = build_kernel().nf4_linear(
             values.contiguous().reshape(-1, self.columns),
