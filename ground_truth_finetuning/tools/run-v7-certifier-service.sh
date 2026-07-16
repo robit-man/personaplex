@@ -6,15 +6,15 @@ readonly RUNTIME_ENV="/srv/voxrn_cache/personaplex-systemd/personaplex-runtime.e
 lane="${1:?lane index is required}"
 [[ -r "$RUNTIME_ENV" ]] || { printf 'PersonaPlex runtime contract missing: %s\n' "$RUNTIME_ENV" >&2; exit 78; }
 source "$RUNTIME_ENV"
-readonly semantic_base_url="http://${PERSONAPLEX_BIND_HOST}:${PERSONAPLEX_CHATML_PORT}"
-readonly semantic_endpoint="${semantic_base_url}/v1/chat/completions"
 
 case "$lane" in
-  0) resource_root="/srv/voxrn_cache/personaplex-lanes/gpu0" ;;
-  1) resource_root="/srv/voxrn_cache/personaplex-lanes/gpu1" ;;
-  2) resource_root="/srv/voxrn_cache/personaplex-lanes/gpu2" ;;
+  0) resource_root="/srv/voxrn_cache/personaplex-lanes/gpu0"; semantic_port="${PERSONAPLEX_CHATML_LANE0_PORT:?}" ;;
+  1) resource_root="/srv/voxrn_cache/personaplex-lanes/gpu1"; semantic_port="${PERSONAPLEX_CHATML_LANE1_PORT:?}" ;;
+  2) resource_root="/srv/voxrn_cache/personaplex-lanes/gpu2"; semantic_port="${PERSONAPLEX_CHATML_LANE2_PORT:?}" ;;
   *) printf 'unsupported lane index: %s\n' "$lane" >&2; exit 64 ;;
 esac
+readonly semantic_base_url="http://${PERSONAPLEX_BIND_HOST}:${semantic_port}"
+readonly semantic_endpoint="${semantic_base_url}/v1/chat/completions"
 
 readonly interval_seconds="${CERTIFY_INTERVAL_SECONDS:-15}"
 cd "$VORYN_ROOT"

@@ -1,0 +1,17 @@
+[Unit]
+Description=PersonaPlex bounded Ornith semantic lane %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+MemoryHigh=48G
+MemoryMax=56G
+MemorySwapMax=0
+OOMPolicy=kill
+ExecStart=/srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/run-personaplex-ornith-worker-service.sh %i
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

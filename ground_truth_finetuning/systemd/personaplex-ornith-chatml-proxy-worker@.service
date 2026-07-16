@@ -1,0 +1,15 @@
+[Unit]
+Description=PersonaPlex Ornith ChatML proxy lane %i
+Requires=personaplex-ornith-worker@%i.service
+After=personaplex-ornith-worker@%i.service
+
+[Service]
+Type=simple
+MemoryMax=1G
+MemorySwapMax=0
+ExecStart=/srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/run-personaplex-chatml-proxy-worker-service.sh %i
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
