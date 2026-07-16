@@ -155,15 +155,17 @@ install_python_deps() {
     "einops==0.7" \
     "sentencepiece==0.2" \
     "sounddevice==0.5" \
-    "sphn>=0.1.4,<0.2" \
+    "sphn>=0.2,<0.3" \
     "aiohttp>=3.10.5,<3.11" \
     requests
+
+  "$VENV_DIR/bin/python" -m pip install --no-cache-dir "moshi==0.2.13"
 
   if [[ -f "$ROOT_DIR/personaplex-setup/moshi/pyproject.toml" ]]; then
     log "installing fork runtime from personaplex-setup/moshi"
     "$VENV_DIR/bin/python" -m pip install --no-deps -e "$ROOT_DIR/personaplex-setup/moshi"
   else
-    log "fork runtime is not materialized at personaplex-setup/moshi; setup will continue but server start will fail until that gitlink is restored"
+    log "fork runtime is not materialized at personaplex-setup/moshi; packaged moshi fallback is installed"
   fi
 }
 
@@ -190,6 +192,7 @@ verify() {
   log "verifying Python packages and CUDA"
   "$VENV_DIR/bin/python" - <<'PY'
 import importlib
+import importlib.util
 import torch
 
 print("torch", torch.__version__)
@@ -197,8 +200,10 @@ print("cuda_available", torch.cuda.is_available())
 print("cuda_version", torch.version.cuda)
 if not torch.cuda.is_available():
     raise SystemExit("torch.cuda.is_available() is false")
-for name in ("aiohttp", "sentencepiece", "sphn", "safetensors", "huggingface_hub"):
+for name in ("aiohttp", "sentencepiece", "sphn", "safetensors", "huggingface_hub", "moshi"):
     importlib.import_module(name)
+if importlib.util.find_spec("moshi.server") is None:
+    raise SystemExit("moshi.server is not importable")
 print("dependency_imports ok")
 PY
 

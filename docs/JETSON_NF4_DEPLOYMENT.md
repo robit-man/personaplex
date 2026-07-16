@@ -3,7 +3,8 @@
 This deployment path is for the local fork in this repository and the public
 `cudabenchmarktest/personaplex-7b-nf4` Hugging Face model artifacts. It does
 not fetch NVIDIA/personaplex source. The `personaplex-setup` path is a gitlink
-in this fork; restore that fork runtime content before starting the server.
+in this fork; when that runtime content is absent, the scripts use the packaged
+`moshi` runtime and a cached bf16 conversion of the NF4 weights.
 
 ## Host detected on 2026-07-16
 
@@ -17,6 +18,7 @@ in this fork; restore that fork runtime content before starting the server.
   `2.4.0a0+07cecf4168.nv24.05`, with CUDA `12.2` and
   `torch.cuda.is_available() == True`
 - NF4 artifacts downloaded to `models/cudabenchmarktest/personaplex-7b-nf4`
+- Packaged fallback runtime installed as `moshi==0.2.13`
 
 NVIDIA's Jetson PyTorch docs require JetPack plus PyTorch system packages, and
 their install flow uses Jetson-specific `linux_aarch64` wheels. NVIDIA forum
@@ -46,6 +48,7 @@ The script:
 - installs NVIDIA's JetPack 6.0 PyTorch wheel from `developer.download.nvidia.com`;
 - installs runtime Python dependencies without installing any alternate
   PersonaPlex source;
+- installs the packaged `moshi` fallback runtime;
 - downloads the NF4 model, Mimi tokenizer, text tokenizer, helper files, and
   `voices/OverBarn.pt`;
 - verifies `torch.cuda.is_available()`.
@@ -59,18 +62,33 @@ and `PERSONAPLEX_TORCH_WHEEL_NAME` before running the script.
 
 ## Start
 
-After the fork runtime gitlink is restored under `personaplex-setup/moshi`,
-start in the foreground:
+For the managed local server, Cloudflare quick tunnel, TUI monitor, and cleanup
+path, run:
+
+```bash
+./scripts/deploy_nf4_cloudflared.sh
+```
+
+The deploy script keeps the monitor in the foreground. On an interactive
+terminal it shows local and tunnel health, server/tunnel PIDs, recent logs, and
+Jetson telemetry through `jtop` when available. `Ctrl+C` stops the Cloudflare
+tunnel and the PersonaPlex server started by the deploy script, releasing the
+CUDA memory held by the server process. Set `PERSONAPLEX_TUI=0` for log-only
+monitoring, or `PERSONAPLEX_CLEANUP_ON_EXIT=0` to leave the server running.
+
+Start in the foreground:
 
 ```bash
 ./scripts/start_nf4_server.sh
 ```
 
-Current start result before restoring the gitlink:
+Runtime selection:
 
-```text
-[personaplex-server] ERROR: fork runtime missing at /home/egg/Documents/personaplex/personaplex-setup/moshi. Restore this fork's personaplex-setup gitlink/source; this script will not fetch upstream source.
-```
+- If `personaplex-setup/moshi` contains the fork runtime, it is used directly
+  with `model-nf4.safetensors`.
+- If that path is absent, the script uses packaged `moshi`, dequantizes
+  `model-nf4.safetensors`, and writes
+  `.cache/personaplex/model-bf16.safetensors`.
 
 Or start in the background:
 
@@ -91,6 +109,8 @@ Useful overrides:
 ```bash
 PERSONAPLEX_PORT=8999 ./scripts/start_nf4_server.sh
 PERSONAPLEX_CPU_MIMI=1 ./scripts/start_nf4_server.sh
+PERSONAPLEX_STATIC=none ./scripts/start_nf4_server.sh
+PERSONAPLEX_BF16_MODEL_PATH=/data/personaplex/model-bf16.safetensors ./scripts/start_nf4_server.sh
 PERSONAPLEX_EXTRA_ARGS="--ssl /tmp/personaplex-ssl" ./scripts/start_nf4_server.sh
 ```
 
@@ -99,8 +119,9 @@ PERSONAPLEX_EXTRA_ARGS="--ssl /tmp/personaplex-ssl" ./scripts/start_nf4_server.s
 The current checkout tracks `personaplex-setup` as a gitlink at commit
 `ca864aa923e96d4dd08c5d9895638c94c7df2802`, but this repository does not
 include a `.gitmodules` URL. Because the deployment must use this fork, the
-scripts refuse to clone a replacement runtime from another repository. Restore
-the matching fork runtime content at `personaplex-setup/moshi` before starting.
+scripts refuse to clone a replacement runtime from another repository. The
+fallback path uses the PyPI `moshi` server plus the model repository's
+`dequant-loader.py` helper instead.
 
 The downloaded `personaplex-7b-nf4-distilled` repository is not the server
 weight source. It contains `student_best.pt` and training metadata. The runnable

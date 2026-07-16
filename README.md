@@ -6,7 +6,9 @@ The local deployment path uses:
 - Jetson AGX Orin / L4T R36.3 / CUDA 12.2 / Python 3.10
 - NVIDIA Jetson CUDA PyTorch in `.venv-jetson`
 - Public Hugging Face model artifacts from `cudabenchmarktest/personaplex-7b-nf4`
-- The fork runtime expected under `personaplex-setup/moshi`
+- The fork runtime under `personaplex-setup/moshi` when that gitlink is
+  materialized, with a packaged Moshi fallback that dequantizes NF4 to a cached
+  bf16 weight file
 
 Detailed deployment notes are in
 [`docs/JETSON_NF4_DEPLOYMENT.md`](docs/JETSON_NF4_DEPLOYMENT.md).
@@ -19,23 +21,23 @@ Run the complete local deployment and public demo tunnel:
 ./scripts/deploy_nf4_cloudflared.sh
 ```
 
-Prerequisite: `personaplex-setup/moshi` must contain this fork's runtime source.
-
 That command:
 
 1. installs or verifies the Jetson Python environment;
 2. downloads/verifies the NF4 model artifacts;
-3. starts PersonaPlex locally at `http://localhost:8998`;
-4. installs `cloudflared` into `.cache/bin` if it is not already available;
-5. runs `cloudflared tunnel --url http://localhost:8998`;
-6. prints a temporary `https://*.trycloudflare.com` URL for the demo.
+3. uses `personaplex-setup/moshi` if present, otherwise creates
+   `.cache/personaplex/model-bf16.safetensors` from the NF4 weights and uses the
+   packaged `moshi` runtime;
+4. starts PersonaPlex locally at `http://localhost:8998`;
+5. installs `cloudflared` into `.cache/bin` if it is not already available;
+6. runs `cloudflared tunnel --url http://localhost:8998`;
+7. prints a temporary `https://*.trycloudflare.com` URL for the demo;
+8. opens a foreground TUI monitor with local/tunnel health, process status,
+   logs, and Jetson telemetry from `jtop` when available.
 
-Leave the command running while the colleague tests the endpoint. Stop the
-tunnel with `Ctrl+C`; stop a background PersonaPlex server with:
-
-```bash
-kill "$(cat server_nf4.pid)"
-```
+Leave the command running while the endpoint is being tested. `Ctrl+C` exits
+the monitor, stops the Cloudflare tunnel, stops the PersonaPlex server started
+by the script, and releases the CUDA memory held by that process.
 
 Useful overrides:
 
@@ -43,6 +45,8 @@ Useful overrides:
 PERSONAPLEX_PORT=8999 ./scripts/deploy_nf4_cloudflared.sh
 PERSONAPLEX_SKIP_SETUP=1 ./scripts/deploy_nf4_cloudflared.sh
 CLOUDFLARED_BIN=/usr/bin/cloudflared ./scripts/deploy_nf4_cloudflared.sh
+PERSONAPLEX_TUI=0 ./scripts/deploy_nf4_cloudflared.sh
+PERSONAPLEX_CLEANUP_ON_EXIT=0 ./scripts/deploy_nf4_cloudflared.sh
 ```
 
 ## Repository Layout
@@ -51,7 +55,8 @@ CLOUDFLARED_BIN=/usr/bin/cloudflared ./scripts/deploy_nf4_cloudflared.sh
   installs Python runtime dependencies, and downloads NF4 model artifacts.
 - `scripts/start_nf4_server.sh`: starts the local PersonaPlex NF4 server.
 - `scripts/deploy_nf4_cloudflared.sh`: runs setup, starts the server, waits for
-  the local endpoint, and opens a Cloudflare quick tunnel.
+  the local endpoint, opens a Cloudflare quick tunnel, and monitors/cleans up
+  the managed processes.
 - `personaplex_control/`: control protocol and server adapter code.
 - `models/cudabenchmarktest/personaplex-7b-nf4/`: local NF4 model artifact
   directory.
@@ -69,6 +74,7 @@ Verified on this machine:
 - `torch.cuda.is_available()`: `True`
 - CUDA device: `Orin`
 - NF4 model directory size: about `4.6G`
+- Packaged fallback runtime: `moshi==0.2.13`
 
 The setup script reported `libomp-dev` as missing, but `sphn` still built
 successfully and CUDA verification passed. If you want the host packages fully
@@ -79,7 +85,7 @@ sudo apt-get update
 sudo apt-get install -y libomp-dev
 ```
 
-## Required Runtime Source
+## Runtime Selection
 
 This checkout tracks `personaplex-setup` as a gitlink at:
 
@@ -88,15 +94,22 @@ ca864aa923e96d4dd08c5d9895638c94c7df2802
 ```
 
 The repository currently does not include a `.gitmodules` URL for that gitlink.
-Restore this fork's runtime source so that this path exists before starting the
-server:
+When this fork's runtime source exists at the following path, the start script
+uses it directly:
 
 ```text
 personaplex-setup/moshi
 ```
 
-The start script intentionally does not fetch replacement runtime source. It
-uses the fork runtime present in this working tree.
+When that gitlink content is absent, the start script does not fetch or vendor
+replacement PersonaPlex source. It uses the packaged `moshi` runtime installed
+by `scripts/setup_jetson_nf4.sh` and pre-dequantizes the NF4 weights to:
+
+```text
+.cache/personaplex/model-bf16.safetensors
+```
+
+Override that cache path with `PERSONAPLEX_BF16_MODEL_PATH=/path/model.safetensors`.
 
 ## Setup
 
@@ -111,7 +124,7 @@ The script performs these steps:
 1. validates Jetson `aarch64`, Python 3.10, and L4T;
 2. creates `.venv-jetson`;
 3. installs NVIDIA's JetPack 6.0 PyTorch wheel;
-4. installs PersonaPlex runtime Python dependencies;
+4. installs PersonaPlex runtime Python dependencies and `moshi==0.2.13`;
 5. downloads the public NF4 model files;
 6. verifies CUDA from inside `.venv-jetson`.
 
@@ -171,8 +184,13 @@ Useful overrides:
 ```bash
 PERSONAPLEX_PORT=8999 ./scripts/start_nf4_server.sh
 PERSONAPLEX_CPU_MIMI=1 ./scripts/start_nf4_server.sh
+PERSONAPLEX_STATIC=none ./scripts/start_nf4_server.sh
+PERSONAPLEX_BF16_MODEL_PATH=/data/personaplex/model-bf16.safetensors ./scripts/start_nf4_server.sh
 PERSONAPLEX_EXTRA_ARGS="--ssl /tmp/personaplex-ssl" ./scripts/start_nf4_server.sh
 ```
+
+`PERSONAPLEX_CPU_MIMI=1` is applied only when the selected runtime supports that
+server flag.
 
 Stop a background server:
 
@@ -196,8 +214,7 @@ if torch.cuda.is_available():
 PY
 ```
 
-Check the endpoint after the runtime source is restored and the server is
-running:
+Check the endpoint after the server is running:
 
 ```bash
 curl -I http://localhost:8998
@@ -297,7 +314,7 @@ find models/cudabenchmarktest/personaplex-7b-nf4 -maxdepth 2 -type f -printf '%P
 Show disk use:
 
 ```bash
-du -sh .venv-jetson .cache/jetson-wheels models/cudabenchmarktest/personaplex-7b-nf4
+du -sh .venv-jetson .cache/jetson-wheels .cache/personaplex models/cudabenchmarktest/personaplex-7b-nf4
 ```
 
 ## License
