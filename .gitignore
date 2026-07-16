@@ -3,6 +3,7 @@ node_modules/
 
 # Python virtual environment
 .venv/
+.venv-jetson/
 .venv_hf/
 venv/
 env/
@@ -12,6 +13,7 @@ env/
 
 # Logs
 *.log
+*.pid
 server.log
 tunnel.log
 
@@ -26,6 +28,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+.cache/
 
 # Build artifacts
 dist/
