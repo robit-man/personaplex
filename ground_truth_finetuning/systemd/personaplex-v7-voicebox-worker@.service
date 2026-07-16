@@ -1,0 +1,18 @@
+[Unit]
+Description=PersonaPlex V7 CUDA Chatterbox worker lane %i
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/roko/Documents/Projects/github_repos/vox_docker_eval/voryn
+ExecStart=/srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/run-v7-voicebox-worker-service.sh %i
+Restart=always
+RestartSec=15
+TimeoutStartSec=300
+TimeoutStopSec=90
+KillSignal=SIGTERM
+StandardOutput=append:/srv/voxrn_cache/personaplex-systemd/voicebox-gpu%i.log
+StandardError=append:/srv/voxrn_cache/personaplex-systemd/voicebox-gpu%i.log
+
+[Install]
+WantedBy=default.target

@@ -7,14 +7,14 @@ lane="${1:?lane index is required}"
 [[ -r "$RUNTIME_ENV" ]] || { printf 'PersonaPlex runtime contract missing: %s\n' "$RUNTIME_ENV" >&2; exit 78; }
 source "$RUNTIME_ENV"
 readonly PLAN_PATH="${PERSONAPLEX_SYNTHESIS_PLAN_PATH:?PERSONAPLEX_SYNTHESIS_PLAN_PATH is required}"
-readonly voicebox_base_url="http://${PERSONAPLEX_BIND_HOST}:${PERSONAPLEX_VOICEBOX_PORT}"
 
 case "$lane" in
-  0) physical_gpu=0; resource_root="/srv/voxrn_cache/personaplex-lanes/gpu0"; semantic_port="${PERSONAPLEX_CHATML_LANE0_PORT:?}" ;;
-  1) physical_gpu=1; resource_root="/srv/voxrn_cache/personaplex-lanes/gpu1"; semantic_port="${PERSONAPLEX_CHATML_LANE1_PORT:?}" ;;
-  2) physical_gpu=2; resource_root="/srv/voxrn_cache/personaplex-lanes/gpu2"; semantic_port="${PERSONAPLEX_CHATML_LANE2_PORT:?}" ;;
+  0) physical_gpu=0; resource_root="/srv/voxrn_cache/personaplex-lanes/gpu0"; semantic_port="${PERSONAPLEX_CHATML_LANE0_PORT:?}"; voicebox_port="${PERSONAPLEX_VOICEBOX_LANE0_PORT:?}" ;;
+  1) physical_gpu=1; resource_root="/srv/voxrn_cache/personaplex-lanes/gpu1"; semantic_port="${PERSONAPLEX_CHATML_LANE1_PORT:?}"; voicebox_port="${PERSONAPLEX_VOICEBOX_LANE1_PORT:?}" ;;
+  2) physical_gpu=2; resource_root="/srv/voxrn_cache/personaplex-lanes/gpu2"; semantic_port="${PERSONAPLEX_CHATML_LANE2_PORT:?}"; voicebox_port="${PERSONAPLEX_VOICEBOX_LANE2_PORT:?}" ;;
   *) printf 'unsupported lane index: %s\n' "$lane" >&2; exit 64 ;;
 esac
+readonly voicebox_base_url="http://${PERSONAPLEX_BIND_HOST}:${voicebox_port}"
 readonly semantic_base_url="http://${PERSONAPLEX_BIND_HOST}:${semantic_port}"
 readonly semantic_endpoint="${semantic_base_url}/v1/chat/completions"
 
