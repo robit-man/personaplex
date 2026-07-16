@@ -87,3 +87,18 @@ strict duplex export before native encoding.
 - Existing workers retain their loaded code until their current bounded attempt
   ends and the supervisor starts the next one. A newly certified pair remains
   required before any export/training claim.
+
+## Requeue integrity repair
+
+- The durable lane progress state had excluded every `unresolved` group from
+  future selection. It now keeps an auditable rejection entry, chooses the
+  least-recently attempted unresolved group before fresh work, and offsets the
+  deterministic seed once per exhausted group. Paired branches receive the same
+  regeneration ordinal.
+- Successful certification removes only the active unresolved marker; it does
+  not erase the historical rejected-attempt ledger. This preserves the reason
+  for every failure and prevents both silent skipping and a single-group retry
+  starvation loop.
+- Static verification passed for the lane runner and both transport modules;
+  the targeted Vitest transport suite remains 2/2. Functional proof remains a
+  fresh independently certified V4 pair under the repaired lane process.
