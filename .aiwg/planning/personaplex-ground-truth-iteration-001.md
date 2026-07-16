@@ -73,3 +73,17 @@ strict duplex export before native encoding.
   batches. The sleeping certifier services were restarted to load the same
   audited route. No model was downloaded, no GPU outside 0/1/2 was selected,
   and no candidate has been promoted on this basis alone.
+
+## Strict local-model transport repair
+
+- Fresh local semantic runs revealed fenced, otherwise complete JSON from the
+  typed control materializer and reply-envelope normalizer. Both are now
+  accepted only when the *entire* response is one JSON code fence; prose and
+  partial extraction still fail closed. This is syntax normalization, not a
+  semantic rule or response rewrite.
+- Verification: `node --check lib/syntheticConversations.js`,
+  `node --check lib/agentVsAgentSim.js`, and
+  `npx vitest run tests/unit/agent-vs-agent-sim.test.js` (2 passing).
+- Existing workers retain their loaded code until their current bounded attempt
+  ends and the supervisor starts the next one. A newly certified pair remains
+  required before any export/training claim.
