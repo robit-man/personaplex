@@ -28,3 +28,7 @@ The materializer writes `pre_generation_manifest.json` only after the exact fano
 ## Promote deliberately
 
 The active plan is configured by `PERSONAPLEX_SYNTHESIS_PLAN_PATH` in `/srv/voxrn_cache/personaplex-systemd/personaplex-runtime.env`. The materializer refuses to overwrite the active plan. After human review of the pre-generation manifest, update that one setting and restart the renderer, lanes, and certifiers. A plan remains planning-only until Voryn independently renders and certifies it.
+
+## Canonical 50x20x10 production inputs
+
+Use [`personaplex_diverse_seed_library.v1.json`](seed_catalogs/personaplex_diverse_seed_library.v1.json) and [`personaplex_diverse_50x20x10.v1.json`](requests/personaplex_diverse_50x20x10.v1.json), not the illustrative four-seed request. The production request is hash-bound to the 48-reference Chatterbox manifest at `/srv/voxrn_cache/chatterbox-reference-bank/manifest.json` and contains every required control source and causal pivot. Regenerate the request hash when either source material changes; do not hand-edit a hash or substitute an unapproved voice manifest.

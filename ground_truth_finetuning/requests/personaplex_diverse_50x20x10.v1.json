@@ -1,0 +1,121 @@
+{
+  "schema": "personaplex.diverse-corpus-request.v1",
+  "requestId": "personaplex-diverse-50x20x10-v1-20260716",
+  "seedRevision": "sha256:f2f39fb9165bb4d2e31d0a74848590ab62756b3bcd56848ea324f33edb461e18",
+  "seedCatalog": "ground_truth_finetuning/seed_catalogs/personaplex_diverse_seed_library.v1.json",
+  "seedIdeas": [
+    "S01: Everyday relationship repair - apologies, boundaries, misunderstandings, and gradual trust repair",
+    "S02: Neighbors and shared spaces - noise, packages, maintenance, favors, and practical compromises",
+    "S03: Moving and settling in - local discovery, utilities, belongings, routines, and social adjustment",
+    "S04: Family logistics - visits, caregiving coordination, celebrations, and changing plans",
+    "S05: Friendship and social plans - invitations, cancellations, reconnection, group coordination, and tact",
+    "S06: Pets and animal care - appointments, behavior, supplies, boarding, and reassurance",
+    "S07: Home repair and maintenance - diagnosis, estimates, scheduling, alternatives, and follow-through",
+    "S08: Household organization - chores, shared budgets, routines, lost items, and practical decisions",
+    "S09: Food, cooking, and local dining - recipes, dietary preferences, reservations, delivery issues, and feedback",
+    "S10: Travel planning and disruptions - itineraries, weather changes, accessibility, missed connections, and recovery",
+    "S11: Public transit and commuting - route changes, rider feedback, timing, accessibility, and alternatives",
+    "S12: Bicycles, walking, and local mobility - repairs, route safety, borrowing, shared rides, and timing",
+    "S13: Vehicle ownership and service - maintenance explanations, shop updates, alternatives, and cost uncertainty",
+    "S14: Personal technology support - device setup, account recovery without credentials, troubleshooting, and handoff",
+    "S15: Software project handoff - tradeoffs, blockers, bug triage, ownership transfer, and clarifying questions",
+    "S16: Creative collaboration - feedback, revisions, deadlines, ownership, and respectful disagreement",
+    "S17: Education and tutoring - study plans, assignment confusion, practice, feedback, and encouragement",
+    "S18: Career development - interviews, portfolio feedback, mentoring, networking, and role transitions",
+    "S19: Workplace coordination - priorities, staffing, meeting changes, escalation, and concise status updates",
+    "S20: Small business customer service - orders, returns, repairs, expectations, service recovery, and follow-up",
+    "S21: Community organizations - volunteers, events, resources, scheduling, and collaborative problem solving",
+    "S22: Libraries, museums, and local culture - programs, reservations, accessibility, memberships, and recommendations",
+    "S23: Recreation and hobbies - classes, clubs, equipment, lessons, practice, and friendly coaching",
+    "S24: Sports and fitness routines - training plans, group logistics, setbacks, motivation, and recovery planning",
+    "S25: Arts, media, and entertainment - recommendations, event planning, creative opinions, access needs, and scheduling",
+    "S26: Books, writing, and reading groups - recommendations, edits, publishing logistics, discussion, and constructive critique",
+    "S27: Language learning and translation help - practice, cultural nuance, lesson scheduling, clarification, and confidence",
+    "S28: Research and fact checking - uncertainty, source comparison, corrections, evidence gaps, and next steps",
+    "S29: Science and maker projects - experiments, equipment, safety boundaries, troubleshooting, and documentation",
+    "S30: Gardening and outdoor projects - seasonal planning, supplies, pests, weather, shared work, and advice",
+    "S31: Environmental and conservation volunteering - cleanup planning, observations, constraints, safety, and follow-up",
+    "S32: Housing and tenant communication - maintenance requests, shared expectations, documentation, options, and escalation",
+    "S33: Consumer purchases and warranties - comparisons, defects, exchanges, repair status, and evidence-based choices",
+    "S34: Banking-adjacent budgeting support - non-sensitive budgeting, billing confusion, payment timing, and referrals without financial advice",
+    "S35: Insurance-adjacent service coordination - documents, repair coordination, status updates, uncertainty, and handoff without coverage advice",
+    "S36: Health and wellness administration - appointment logistics, general wellness routines, accessibility, and referral without diagnosis or treatment",
+    "S37: Childcare and school administration - schedules, supplies, pickup changes, accommodations, and respectful clarification",
+    "S38: Accessibility and assistive services - accommodations, device support, service timing, communication preferences, and escalation",
+    "S39: Emergency preparedness without active crisis - plans, supplies, check-ins, weather preparation, and calm boundaries",
+    "S40: Local events and venue coordination - tickets, accessibility, vendor questions, timing changes, and recovery from mix-ups",
+    "S41: Market research and neutral polling - consent-based feedback, survey reluctance, preferences, clarification, and graceful opt-out",
+    "S42: News and media literacy discussion - uncertainty, source quality, corrections, differing interpretations, and de-escalation without persuasion",
+    "S43: Personal finance planning conversations - goals, tradeoffs, reminders, uncertainty, and referral to qualified advice without recommendations",
+    "S44: Nonprofit donor and member support - event questions, receipt logistics, preferences, no-pressure follow-up, and opt-out",
+    "S45: Online marketplace coordination - condition questions, pickup timing, negotiation, misunderstandings, and safe alternatives",
+    "S46: Remote work and collaboration tools - availability, handoff, meeting issues, coordination, and interruption recovery",
+    "S47: Home energy and utilities - outages, usage questions, technician windows, conservation, and status uncertainty",
+    "S48: Civic services and public information - permits, facilities, service requests, eligibility uncertainty, and non-partisan routing",
+    "S49: Life transitions and routine changes - new routines, retirement, caregiving changes, grief-sensitive support, and practical next steps",
+    "S50: Casual open-ended conversation - shared interests, observations, playful repair, changing topics, and natural short calls"
+  ],
+  "topicConstraints": {
+    "include": [
+      "casual",
+      "service",
+      "technical",
+      "education",
+      "community",
+      "creative",
+      "administrative",
+      "research"
+    ],
+    "exclude": [
+      "identity verification",
+      "political persuasion",
+      "unconsented impersonation",
+      "financial or medical advice",
+      "contact data",
+      "company scripts",
+      "placeholder names"
+    ]
+  },
+  "coverageTarget": {
+    "candidateTopics": 50,
+    "scenariosPerTopic": 20,
+    "trajectorySeedsPerScenario": 10,
+    "selectedCounterfactualGroups": 500,
+    "branchesPerGroup": 2
+  },
+  "allowedVoicesManifest": "sha256:4bb0dda69a176b0323754b28008d0cd8e2a2393e5d630cfa912cb743b8216f7a",
+  "renderer": "voicebox_chatterbox_turbo",
+  "asr": "whisper",
+  "allowedPhysicalCudaDevices": [
+    0,
+    1,
+    2
+  ],
+  "requiredControlCoverage": {
+    "stateSources": [
+      "asr_fact",
+      "tool_result",
+      "policy_decision",
+      "caller_posture_change",
+      "interruption",
+      "handoff"
+    ],
+    "causalPivots": [
+      "fact_change",
+      "tool_result_change",
+      "policy_constraint_change",
+      "caller_posture_change",
+      "next_goal_change",
+      "interruption_invalidation"
+    ],
+    "targetLeakageProhibited": true,
+    "requireControlForAllAgentTargets": true,
+    "requireNaturalModelSelectedEndCall": true
+  },
+  "requestedAdditions": [
+    "all fifty seed domains represented",
+    "real interruption cutoffs and recovery",
+    "no repeated introductions or company scripts"
+  ],
+  "prohibitedContentPolicyRevision": "personaplex-safe-synthesis-v1"
+}
