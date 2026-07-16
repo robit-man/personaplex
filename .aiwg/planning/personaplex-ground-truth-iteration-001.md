@@ -16,9 +16,11 @@ Input certificate:
 - Certificate fields: `acceptedConversations=2`,
   `acceptedCounterfactualGroups=1`,
   `counterfactualPairingRevision=v4-lineage-pivot-v2`.
-- Strict evidence export created two examples with no rejected groups and
+- The pre-fix evidence exporter created two examples with no rejected groups and
   `targetTextInControlOrEvidence=false`:
   `/srv/personaplex_workspace/ground_truth_runs/v4-pair-0004-evidence-20260716-0557`.
+  That output is diagnostic only: the exporter had not compared frame identity
+  to the enclosing turn.
 - Strict duplex export materialized only one admitted example and rejected the
   constrained branch; its independent audio/no-leakage validator passed only
   for that partial one-branch output:
@@ -29,10 +31,13 @@ Input certificate:
 The constrained branch is rejected as `turn_1_v4_target_evidence_lineage_invalid`.
 Its record `conversationId` differs from the `conversationId` carried by its
 control/evidence frames, which retain the primary branch identity. The evidence
-exporter currently validates control-to-evidence alignment but does not validate
+exporter formerly validated control-to-evidence alignment but did not validate
 either frame against the enclosing record identity; it therefore accepted an
-inconsistent pair. The partial duplex result is diagnostic only and must not be
-used for tensor preparation, training, checkpoint selection, or a corpus count.
+inconsistent pair. The repair now rejects the source bundle at evidence export
+with that exact reason, recorded in
+`/srv/personaplex_workspace/ground_truth_runs/v4-pair-0004-evidence-identity-rejection-20260716-0601`.
+The partial duplex result is diagnostic only and must not be used for tensor
+preparation, training, checkpoint selection, or a corpus count.
 
 ## Next gate
 
@@ -40,3 +45,16 @@ Repair the paired replay/materialization identity contract, add a regression
 fixture making both exporters agree on a valid and an invalid pair, regenerate
 the affected group through independent certification, and require a two-branch
 strict duplex export before native encoding.
+
+## Local repair verification
+
+- `lib/syntheticConversations.js` now builds post-pivot control/evidence frames
+  with the branch-local conversation ID rather than the replay source ID.
+- V4 evidence export now requires the record, control frame, and evidence frame
+  to have the same conversation identity.
+- Shared replay turns stay subject to generic audio/timeline/provenance checks,
+  but are explicitly quarantined from target-label admission.
+- `python3 -m unittest ground_truth_finetuning.tests.test_v4_export_contract`
+  passed three regression tests. No live worker was restarted; the corrected
+  code requires a separately observed, newly generated and independently
+  certified V4 pair before promotion.
