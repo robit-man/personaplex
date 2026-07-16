@@ -154,6 +154,16 @@ must never be committed as evidence.
   Required remaining proof: a full 10,000-unit planning run, structural validation
   report, Voryn bridge export, and independent source certification of the selected
   500 counterfactual groups.
+- [~] Add repair-first source generation: preserve safe replay snapshots, use a
+  thinking-disabled control agent to triage admissible post-pivot suffix retries, retain
+  pair-level repair packets after independent batch rejection, and bound repeated
+  regeneration before requesting a replacement lattice candidate.
+  Proof: `voryn/lib/syntheticConversations.js`,
+  `voryn/scripts/run-personaplex-v7-paired-lane.js`, and
+  `voryn/scripts/certify-personaplex-v7-paired-queue.js`.
+  Required remaining proof: staged replay-repair run card showing an accepted repaired
+  suffix, preserved exact prefix, a rejected pre-pivot repair, and a replacement request
+  after the bounded budget.
 
 - [x] The 1,000-conversation plan allocates 48 approved voices, 1,128 possible
   unordered pairs, varied topics, openings, closings, coverage profiles, and seeds.

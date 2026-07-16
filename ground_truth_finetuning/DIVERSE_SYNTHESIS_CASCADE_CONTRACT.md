@@ -486,6 +486,12 @@ by `voryn/lib/voiceReferenceBank.js`; current audit/manifest tooling is in
   **model-only** JSON repair/retry. It is not converted to a pass without an auditor.
 - Exhausted retries leave the candidate unresolved/rejected and select a replacement
   candidate from the lattice. Do not weaken a gate to fill a quota.
+- A failed pair receives a typed repair packet. A control agent may regenerate only the
+  earliest invalid **post-pivot** suffix from its preserved causal snapshot. Pre-pivot
+  defects require pair replacement because the exact shared prefix is no longer valid.
+- A bounded repair budget prevents one scenario from consuming unbounded GPU time. Once
+  exhausted, the coordinator selects a replacement trajectory from the candidate lattice
+  and retains the failure packet for audit and future generator improvement.
 - Keep failure reason, model/version, revision chain, and replacement lineage in the
   run ledger. Do not retain raw sensitive tool payloads on the audio plane.
 

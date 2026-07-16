@@ -7,10 +7,9 @@ readonly PLAN_PATH="/srv/personaplex_workspace/ground_truth_runs/personaplex-100
 lane="${1:?lane index is required}"
 
 case "$lane" in
-  0|3)
+  0)
     physical_gpu=0
     resource_root="/srv/voxrn_cache/personaplex-lanes/gpu0"
-    [[ "$lane" == 3 ]] && resource_root="/srv/voxrn_cache/personaplex-lanes/workers/worker3"
     voicebox_url="http://127.0.0.1:17500"
     # The independent semantic plane is the resident 35B model on GPU 2;
     # dialogue remains on the local GPU-0 PersonaPlex-control model.
@@ -21,10 +20,9 @@ case "$lane" in
     dialogue_model="personaplex-control-ornith:35b"
     dialogue_endpoint="http://127.0.0.1:12080/v1/chat/completions"
     ;;
-  1|4)
+  1)
     physical_gpu=1
     resource_root="/srv/voxrn_cache/personaplex-lanes/gpu1"
-    [[ "$lane" == 4 ]] && resource_root="/srv/voxrn_cache/personaplex-lanes/workers/worker4"
     voicebox_url="http://127.0.0.1:17501"
     # Keep the semantic judge independent of the GPU-1 dialogue model.
     inference_model="personaplex-control-ornith:35b"
@@ -34,10 +32,9 @@ case "$lane" in
     dialogue_model="robit/ornith:35b"
     dialogue_endpoint="http://127.0.0.1:11434/v1/chat/completions"
     ;;
-  2|5)
+  2)
     physical_gpu=2
     resource_root="/srv/voxrn_cache/personaplex-lanes/gpu2"
-    [[ "$lane" == 5 ]] && resource_root="/srv/voxrn_cache/personaplex-lanes/workers/worker5"
     voicebox_url="http://127.0.0.1:17502"
     # The independent semantic plane is the resident GPU-0 control model.
     inference_model="personaplex-control-ornith:35b"
@@ -84,11 +81,13 @@ exec env \
   VOICEBOX_BASE_URL="$voicebox_url" \
   SYNTHESIS_PLAN_PATH="$PLAN_PATH" \
   SYNTHESIS_LANE_INDEX="$lane" \
-  SYNTHESIS_LANE_COUNT=6 \
+  SYNTHESIS_LANE_COUNT=3 \
   SYNTHESIS_MAX_COUNTERFACTUAL_GROUPS=1 \
-  SYNTHESIS_MAX_ATTEMPTS=3 \
+  SYNTHESIS_MAX_ATTEMPTS=2 \
+  SYNTHESIS_MAX_SUFFIX_REPAIRS=3 \
+  SYNTHESIS_MAX_REGENERATIONS_PER_GROUP=3 \
   SYNTHESIS_WAIT_FOR_CERTIFICATION=0 \
-  SYNTHESIS_PROGRESS_NAMESPACE=v10-diverse-v6-par6 \
+  SYNTHESIS_PROGRESS_NAMESPACE=v11-repairable-v8 \
   SYNTHESIS_CERTIFICATE_SCAN_ROOT=/srv/voxrn_cache/personaplex-lanes \
   SYNTHESIS_MIN_ASR_CONFIDENCE=0.45 \
   SYNTHESIS_MAX_ASR_WER=0.25 \
