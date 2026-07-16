@@ -31,6 +31,9 @@ Runtime:
 
 Transport status:
 
+- Live quick-tunnel endpoint at handoff time: `https://open-salaries-riding-rotary.trycloudflare.com`
+  - This is a Cloudflare quick tunnel and is only valid while the current `deploy_nf4_cloudflared.sh` process remains running.
+  - If the launcher is restarted, read the new URL from `tunnel_nf4.log`.
 - The default prompt state is cached at server startup.
 - Local WebSocket handshake measured around `0.026s`.
 - Cloudflare WebSocket handshake measured around `0.4s` to `0.7s`.
