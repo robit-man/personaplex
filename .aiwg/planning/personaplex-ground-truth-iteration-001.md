@@ -58,3 +58,18 @@ strict duplex export before native encoding.
   passed three regression tests. No live worker was restarted; the corrected
   code requires a separately observed, newly generated and independently
   certified V4 pair before promotion.
+
+## Semantic-service availability repair
+
+- The configured cloud semantic model returned a provider session-usage-limit
+  error for a minimal structured request. Lanes correctly failed closed before
+  rendering; the resulting missing-render/ASR messages were consequences of
+  that rejection, not quality-gate bypasses.
+- The resident `personaplex-control-ornith:35b` and `robit/ornith:35b` local
+  endpoints each passed the equivalent JSON-only probe. Lane routing now sends
+  semantic planning/certification to an independent resident local 35B endpoint
+  rather than the branch's dialogue endpoint whenever possible.
+- The three lane processes naturally reloaded the new environment between
+  batches. The sleeping certifier services were restarted to load the same
+  audited route. No model was downloaded, no GPU outside 0/1/2 was selected,
+  and no candidate has been promoted on this basis alone.
