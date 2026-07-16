@@ -100,5 +100,45 @@ strict duplex export before native encoding.
   for every failure and prevents both silent skipping and a single-group retry
   starvation loop.
 - Static verification passed for the lane runner and both transport modules;
-  the targeted Vitest transport suite remains 2/2. Functional proof remains a
-  fresh independently certified V4 pair under the repaired lane process.
+  the targeted Vitest transport suite remains 2/2. Live progress now contains
+  `requeue_seed_varied` histories at regeneration ordinal 1 on all three lanes;
+  this proves requeue execution but is not a data-promotion claim.
+
+## Fresh repaired V4 pair
+
+- `v7cf-p1000v4-0023` is the first post-repair pair to complete independent
+  batch certification: two accepted conversations, one accepted V4
+  `v4-lineage-pivot-v2` counterfactual group, and 40 promoted source records.
+- Certified-only export produced two evidence records and two strict duplex
+  records with zero rejected or diagnostic examples. The strict duplex validator
+  passed. Artifact roots are
+  `/srv/personaplex_workspace/ground_truth_runs/v4-pair-0023-certified-20260716-0618-evidence`
+  and `...-duplex`.
+- This closes the two-branch identity/export regression only. It does not
+  establish corpus diversity, split coverage, or adapter-training readiness.
+
+## Native provenance and tensor gate
+
+- Native contracts now bind the exact frozen LM, Moshi source fingerprint,
+  Mimi artifact, and SentencePiece tokenizer. Encoders reject artifact byte
+  changes; the tensor certifier publishes the single codec identity; both
+  adapter trainers reject a corpus certificate or current tokenizer that does
+  not match the contract. Seven focused contract/export tests pass.
+- The initially selected `model.safetensors` was rejected as a Moshika LM state
+  dict, not Mimi. No tensors were emitted from that failed path. The compatible
+  Mimi is the explicitly named `tokenizer-e351c8d8-checkpoint125.safetensors`
+  artifact, whose tensor keys are Mimi encoder/decoder/quantizer keys.
+- The corrected contract encoded the fresh pair on physical CUDA 2 only into
+  two 17-stream `torch.int64` native code tensors (Mimi frame rate 12.5 Hz) and
+  agent-only masks. The certificate reports
+  `insufficient_split_coverage`: train=2, validation=0, test=0. This pair is
+  integrity-verified but explicitly non-trainable; no DDP launch/checkpoint or
+  runtime-with-trained-adapter claim has been made.
+
+## Next gate
+
+Continue independent V4 paired generation until one lineage-indexed aggregate
+has group-isolated train, validation, and test coverage and quota evidence.
+Only then certify the aggregate native corpus, run real CUDA 0/1/2 DDP
+semantic-prefix training with held-out evaluation, and proceed to the frozen
+evidence adapter and trained-runtime harness.
