@@ -34,7 +34,7 @@ import tarfile
 import time
 import secrets
 import sys
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 import aiohttp
 from aiohttp import web
@@ -115,6 +115,95 @@ class ServerState:
         self.mimi.streaming_forever(1)
         self.other_mimi.streaming_forever(1)
         self.lm_gen.streaming_forever(1)
+        self.default_voice_prompt_path: str | None = None
+        self.default_prompt_state: dict[str, Any] | None = None
+
+    def _resolve_voice_prompt_path(self, voice_prompt_filename: str, clog: ColorizedLog | None = None) -> tuple[str | None, str | None]:
+        requested_voice_prompt_path = None
+        voice_prompt_path = None
+        if self.voice_prompt_dir is not None:
+            if voice_prompt_filename:
+                requested_voice_prompt_path = os.path.join(self.voice_prompt_dir, voice_prompt_filename)
+            if requested_voice_prompt_path is None or not os.path.exists(requested_voice_prompt_path):
+                voice_prompt_files = sorted(
+                    os.path.join(self.voice_prompt_dir, name)
+                    for name in os.listdir(self.voice_prompt_dir)
+                    if name.endswith((".pt", ".wav", ".flac", ".mp3"))
+                )
+                if not voice_prompt_files:
+                    raise FileNotFoundError(f"No voice prompt files found in '{self.voice_prompt_dir}'")
+                voice_prompt_path = voice_prompt_files[0]
+                if voice_prompt_filename and clog is not None:
+                    clog.log(
+                        "warning",
+                        f"Requested voice prompt '{voice_prompt_filename}' not found in "
+                        f"'{self.voice_prompt_dir}', using '{os.path.basename(voice_prompt_path)}'",
+                    )
+            else:
+                voice_prompt_path = requested_voice_prompt_path
+        return voice_prompt_path, requested_voice_prompt_path
+
+    def _set_prompts(self, voice_prompt_path: str | None, text_prompt: str) -> None:
+        if voice_prompt_path is not None and self.lm_gen.voice_prompt != voice_prompt_path:
+            if voice_prompt_path.endswith('.pt'):
+                self.lm_gen.load_voice_prompt_embeddings(voice_prompt_path)
+            else:
+                self.lm_gen.load_voice_prompt(voice_prompt_path)
+        self.lm_gen.text_prompt_tokens = (
+            self.text_tokenizer.encode(wrap_with_system_tags(text_prompt))
+            if len(text_prompt) > 0
+            else []
+        )
+
+    def _snapshot_lm_state(self) -> dict[str, Any]:
+        state = self.lm_gen._streaming_state
+        if state is None:
+            raise RuntimeError("LMGen streaming state is not initialized")
+        return {
+            "cache": state.cache.detach().clone(),
+            "provided": state.provided.detach().clone(),
+            "condition_streaming_sum": state.condition_streaming_sum.detach().clone(),
+            "pending_streaming_sums": [
+                item.detach().clone() if item is not None else None
+                for item in state.pending_streaming_sums
+            ],
+            "offset": state.offset,
+        }
+
+    def _restore_lm_state(self, snapshot: dict[str, Any]) -> None:
+        state = self.lm_gen._streaming_state
+        if state is None:
+            raise RuntimeError("LMGen streaming state is not initialized")
+        state.cache.copy_(snapshot["cache"])
+        state.provided.copy_(snapshot["provided"])
+        state.condition_streaming_sum.copy_(snapshot["condition_streaming_sum"])
+        state.pending_streaming_sums = [
+            item.detach().clone() if item is not None else None
+            for item in snapshot["pending_streaming_sums"]
+        ]
+        state.offset = snapshot["offset"]
+
+    def prime_default_system_prompt(self) -> None:
+        value = os.environ.get("PERSONAPLEX_PRIME_DEFAULT_PROMPT", "1").lower()
+        if value in {"0", "false", "no", "off"}:
+            logger.info("default prompt pre-prime disabled")
+            return
+        if self.voice_prompt_dir is None:
+            return
+
+        voice_prompt_path, _ = self._resolve_voice_prompt_path("")
+        self.default_voice_prompt_path = voice_prompt_path
+        self._set_prompts(voice_prompt_path, "")
+        self.mimi.reset_streaming()
+        self.other_mimi.reset_streaming()
+        self.lm_gen.reset_streaming()
+
+        start = time.time()
+        self.lm_gen.step_system_prompts(self.mimi)
+        self.mimi.reset_streaming()
+        self.other_mimi.reset_streaming()
+        self.default_prompt_state = self._snapshot_lm_state()
+        logger.info("primed default system prompt in %.2fs", time.time() - start)
     
     def warmup(self):
         for _ in range(4):
@@ -148,36 +237,8 @@ class ServerState:
         # Construct full voice prompt path
         text_prompt = request.query.get("text_prompt", "")
         voice_prompt_filename = request.query.get("voice_prompt", "")
-        requested_voice_prompt_path = None
-        voice_prompt_path = None
-        if self.voice_prompt_dir is not None:
-            if voice_prompt_filename:
-                requested_voice_prompt_path = os.path.join(self.voice_prompt_dir, voice_prompt_filename)
-            if requested_voice_prompt_path is None or not os.path.exists(requested_voice_prompt_path):
-                voice_prompt_files = sorted(
-                    os.path.join(self.voice_prompt_dir, name)
-                    for name in os.listdir(self.voice_prompt_dir)
-                    if name.endswith((".pt", ".wav", ".flac", ".mp3"))
-                )
-                if not voice_prompt_files:
-                    raise FileNotFoundError(f"No voice prompt files found in '{self.voice_prompt_dir}'")
-                voice_prompt_path = voice_prompt_files[0]
-                if voice_prompt_filename:
-                    clog.log(
-                        "warning",
-                        f"Requested voice prompt '{voice_prompt_filename}' not found in "
-                        f"'{self.voice_prompt_dir}', using '{os.path.basename(voice_prompt_path)}'",
-                    )
-            else:
-                voice_prompt_path = requested_voice_prompt_path
-                
-        if self.lm_gen.voice_prompt != voice_prompt_path:
-            if voice_prompt_path.endswith('.pt'):
-                # Load pre-saved voice prompt embeddings
-                self.lm_gen.load_voice_prompt_embeddings(voice_prompt_path)
-            else:
-                self.lm_gen.load_voice_prompt(voice_prompt_path)
-        self.lm_gen.text_prompt_tokens = self.text_tokenizer.encode(wrap_with_system_tags(text_prompt)) if len(text_prompt) > 0 else []
+        voice_prompt_path, requested_voice_prompt_path = self._resolve_voice_prompt_path(voice_prompt_filename, clog)
+        self._set_prompts(voice_prompt_path, text_prompt)
         seed = int(request.query["seed"]) if "seed" in request.query else None
 
         async def recv_loop():
@@ -212,6 +273,7 @@ class ServerState:
                 clog.log("info", "connection closed")
 
         async def opus_loop():
+            nonlocal close
             all_pcm_data = None
 
             while True:
@@ -247,18 +309,27 @@ class ServerState:
                             _text = self.text_tokenizer.id_to_piece(text_token)  # type: ignore
                             _text = _text.replace("▁", " ")
                             msg = b"\x02" + bytes(_text, encoding="utf8")
-                            await ws.send_bytes(msg)
+                            try:
+                                await ws.send_bytes(msg)
+                            except (ConnectionResetError, aiohttp.ClientConnectionError):
+                                close = True
+                                return
                         else:
                             text_token_map = ['EPAD', 'BOS', 'EOS', 'PAD']
 
         async def send_loop():
+            nonlocal close
             while True:
                 if close:
                     return
                 await asyncio.sleep(0.001)
                 msg = opus_writer.read_bytes()
                 if len(msg) > 0:
-                    await ws.send_bytes(b"\x01" + msg)
+                    try:
+                        await ws.send_bytes(b"\x01" + msg)
+                    except (ConnectionResetError, aiohttp.ClientConnectionError):
+                        close = True
+                        return
 
         clog.log("info", "accepted connection")
         if len(text_prompt) > 0:
@@ -289,10 +360,21 @@ class ServerState:
                 except aiohttp.ClientConnectionError:
                     return False
                 return True
-            # Reuse mimi for encoding voice prompt and then reset it before conversation starts
-            await self.lm_gen.step_system_prompts_async(self.mimi, is_alive=is_alive)
-            self.mimi.reset_streaming()
-            clog.log("info", "done with system prompts")
+            use_default_prompt_state = (
+                self.default_prompt_state is not None
+                and voice_prompt_path == self.default_voice_prompt_path
+                and len(text_prompt) == 0
+                and seed is None
+            )
+            if use_default_prompt_state:
+                self._restore_lm_state(self.default_prompt_state)
+                self.mimi.reset_streaming()
+                clog.log("info", "restored cached system prompts")
+            else:
+                # Reuse mimi for encoding voice prompt and then reset it before conversation starts
+                await self.lm_gen.step_system_prompts_async(self.mimi, is_alive=is_alive)
+                self.mimi.reset_streaming()
+                clog.log("info", "done with system prompts")
             # Send the handshake.
             if await is_alive():
                 await ws.send_bytes(b"\x00")
@@ -466,6 +548,8 @@ def main():
     )
     logger.info("warming up the model")
     state.warmup()
+    logger.info("priming default system prompt")
+    state.prime_default_system_prompt()
     app = web.Application()
     app.router.add_get("/api/chat", state.handle_chat)
     if static_path is not None:
