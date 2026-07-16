@@ -16,7 +16,7 @@ case "$lane" in
   *) printf 'unsupported lane index: %s\n' "$lane" >&2; exit 64 ;;
 esac
 
-readonly interval_seconds="${CERTIFY_INTERVAL_SECONDS:-120}"
+readonly interval_seconds="${CERTIFY_INTERVAL_SECONDS:-15}"
 cd "$VORYN_ROOT"
 set -a
 source ./.env
