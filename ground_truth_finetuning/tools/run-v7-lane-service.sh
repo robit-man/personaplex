@@ -2,11 +2,11 @@
 set -euo pipefail
 
 readonly VORYN_ROOT="/home/roko/Documents/Projects/github_repos/vox_docker_eval/voryn"
-readonly PLAN_PATH="/srv/personaplex_workspace/ground_truth_runs/personaplex-1000-plan.v8-counterfactual-diverse-v6.jsonl"
 readonly RUNTIME_ENV="/srv/voxrn_cache/personaplex-systemd/personaplex-runtime.env"
 lane="${1:?lane index is required}"
 [[ -r "$RUNTIME_ENV" ]] || { printf 'PersonaPlex runtime contract missing: %s\n' "$RUNTIME_ENV" >&2; exit 78; }
 source "$RUNTIME_ENV"
+readonly PLAN_PATH="${PERSONAPLEX_SYNTHESIS_PLAN_PATH:?PERSONAPLEX_SYNTHESIS_PLAN_PATH is required}"
 readonly voicebox_base_url="http://${PERSONAPLEX_BIND_HOST}:${PERSONAPLEX_VOICEBOX_PORT}"
 readonly semantic_base_url="http://${PERSONAPLEX_BIND_HOST}:${PERSONAPLEX_CHATML_PORT}"
 readonly semantic_endpoint="${semantic_base_url}/v1/chat/completions"
