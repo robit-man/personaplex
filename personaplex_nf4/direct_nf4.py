@@ -159,8 +159,6 @@ class NF4Embedding(NF4Matrix):
         if not indices.is_cuda:
             raise RuntimeError("PersonaPlex direct NF4 only accepts CUDA token indices")
         values = indices.contiguous().reshape(-1).to(dtype=torch.long)
-        if values.numel() and (int(values.min()) < 0 or int(values.max()) >= self.rows):
-            raise RuntimeError("NF4 embedding index is out of range")
         output = build_kernel().nf4_embedding(values, self.packed_weight, self.scales, self.rows, self.columns)
         return output.reshape(*indices.shape, self.columns)
 
@@ -274,11 +272,13 @@ def _load_nf4_moshi_lm(
     target = torch.device(device)
     if target.type != "cuda":
         raise RuntimeError(f"PersonaPlex direct NF4 requires a CUDA device, got {target}")
+    build_kernel()
     model_kwargs = dict(loaders._lm_kwargs)
     model_kwargs["dep_q"] = 16
     if delays is not None:
         model_kwargs["delays"] = delays
     model = LMModel(device="meta", dtype=dtype, **model_kwargs)
+    model.dtype = dtype
 
     device_index = target.index if target.index is not None else 0
     with safe_open(str(filename), framework="pt", device=device_index) as checkpoint:
@@ -347,4 +347,3 @@ def install_direct_nf4_loader() -> None:
 
     loaders.get_moshi_lm = direct_loader
     loaders._personaplex_direct_nf4 = True
-

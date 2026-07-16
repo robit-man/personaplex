@@ -7,6 +7,8 @@ WHEEL_DIR="${PERSONAPLEX_WHEEL_DIR:-$ROOT_DIR/.cache/jetson-wheels}"
 MODEL_REPO="${PERSONAPLEX_MODEL_REPO:-cudabenchmarktest/personaplex-7b-nf4}"
 MODEL_DIR="${PERSONAPLEX_MODEL_DIR:-$ROOT_DIR/models/cudabenchmarktest/personaplex-7b-nf4}"
 RUNTIME_DIR="${PERSONAPLEX_RUNTIME_DIR:-$ROOT_DIR/personaplex-setup/moshi}"
+STATIC_REPO="${PERSONAPLEX_STATIC_REPO:-kyutai/moshi-artifacts}"
+STATIC_DIR="${PERSONAPLEX_STATIC_DIR:-$ROOT_DIR/.cache/personaplex/static/dist}"
 PYTHON_BIN="${PYTHON:-python3}"
 
 TORCH_WHEEL_NAME="${PERSONAPLEX_TORCH_WHEEL_NAME:-torch-2.4.0a0+07cecf4168.nv24.05.14710581-cp310-cp310-linux_aarch64.whl}"
@@ -187,6 +189,32 @@ snapshot_download(
 PY
 }
 
+download_static() {
+  if [[ "${PERSONAPLEX_SKIP_STATIC:-0}" == "1" ]]; then
+    log "skipping static web bundle because PERSONAPLEX_SKIP_STATIC=1"
+    return
+  fi
+  if [[ -s "$STATIC_DIR/index.html" ]]; then
+    log "static web bundle already present at $STATIC_DIR"
+    return
+  fi
+  log "ensuring public static web bundle from $STATIC_REPO"
+  PERSONAPLEX_STATIC_REPO="$STATIC_REPO" PERSONAPLEX_STATIC_DIR="$STATIC_DIR" "$VENV_DIR/bin/python" - <<'PY'
+import os
+import tarfile
+from pathlib import Path
+from huggingface_hub import hf_hub_download
+
+target = Path(os.environ["PERSONAPLEX_STATIC_DIR"])
+target.parent.mkdir(parents=True, exist_ok=True)
+archive = Path(hf_hub_download(os.environ["PERSONAPLEX_STATIC_REPO"], "dist.tgz", token=False))
+with tarfile.open(archive, "r:gz") as tar:
+    tar.extractall(path=target.parent)
+if not (target / "index.html").is_file():
+    raise SystemExit(f"static bundle did not create {target / 'index.html'}")
+PY
+}
+
 verify() {
   log "verifying Python packages and CUDA"
   "$VENV_DIR/bin/python" - <<'PY'
@@ -232,6 +260,7 @@ main() {
   install_torch
   install_python_deps
   download_model
+  download_static
   verify
   log "setup complete"
   log "start with: $ROOT_DIR/scripts/start_nf4_server.sh"

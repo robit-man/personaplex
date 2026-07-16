@@ -67,6 +67,12 @@ class ActivationGating(nn.Module):
         self.activation = activation
 
     def forward(self, x: torch.Tensor):
+        if not hasattr(self.linear_in, "weight") or not hasattr(self.linear_out, "weight"):
+            x = self.linear_in(x)
+            B, T, _ = x.shape
+            x = x.view(B, T, 2, -1)
+            x = self.activation(x[..., 0, :]) * x[..., 1, :]
+            return self.linear_out(x)
         return gating_forward_kernel(
             self.linear_in.weight, self.linear_out.weight, self.activation, x
         )
