@@ -582,6 +582,9 @@ silently rewrite an artifact owned by another stage.
    retaining its existing safety and coverage vocabulary as seed material.
 4. Teach `voryn/scripts/derive-personaplex-v7-counterfactual-plan.js` to select exactly
    500 quota-balanced trajectory units and emit two branches per selected unit.
+   The interim bridge is `tools/compile_diverse_cascade_voryn_plan.py`: it model-compiles
+   selected pair specifications to the existing V8 lane-plan shape while pinning branch
+   lineage, approved voice pairs, pivot identity, and evidence-update references.
 5. Keep `voryn/lib/syntheticConversations.js` as the turn-level realizer, but require
    it to persist scenario/trajectory IDs, control revision chain, evidence availability,
    pair pivot, and lineage hashes on every record.

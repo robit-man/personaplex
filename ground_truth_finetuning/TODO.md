@@ -149,7 +149,8 @@ must never be committed as evidence.
   `schemas/diverse_corpus_request.schema.json`,
   `schemas/diverse_cascade_artifacts.schema.json`,
   `tools/build_diverse_synthesis_cascade.py`, and
-  `tools/validate_diverse_synthesis_cascade.py`.
+  `tools/validate_diverse_synthesis_cascade.py`, and
+  `tools/compile_diverse_cascade_voryn_plan.py`.
   Required remaining proof: a full 10,000-unit planning run, structural validation
   report, Voryn bridge export, and independent source certification of the selected
   500 counterfactual groups.
