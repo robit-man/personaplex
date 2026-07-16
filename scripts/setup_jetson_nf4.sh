@@ -6,6 +6,7 @@ VENV_DIR="${PERSONAPLEX_VENV:-$ROOT_DIR/.venv-jetson}"
 WHEEL_DIR="${PERSONAPLEX_WHEEL_DIR:-$ROOT_DIR/.cache/jetson-wheels}"
 MODEL_REPO="${PERSONAPLEX_MODEL_REPO:-cudabenchmarktest/personaplex-7b-nf4}"
 MODEL_DIR="${PERSONAPLEX_MODEL_DIR:-$ROOT_DIR/models/cudabenchmarktest/personaplex-7b-nf4}"
+RUNTIME_DIR="${PERSONAPLEX_RUNTIME_DIR:-$ROOT_DIR/personaplex-setup/moshi}"
 PYTHON_BIN="${PYTHON:-python3}"
 
 TORCH_WHEEL_NAME="${PERSONAPLEX_TORCH_WHEEL_NAME:-torch-2.4.0a0+07cecf4168.nv24.05.14710581-cp310-cp310-linux_aarch64.whl}"
@@ -148,25 +149,23 @@ PY
 }
 
 install_python_deps() {
-  log "installing PersonaPlex runtime dependencies"
+  log "installing PersonaPlex direct-NF4 runtime dependencies"
   "$VENV_DIR/bin/python" -m pip install --no-cache-dir \
+    "numpy>=1.26,<2.2" \
     "safetensors>=0.4.0,<0.5" \
     "huggingface-hub>=0.24,<0.25" \
     "einops==0.7" \
     "sentencepiece==0.2" \
     "sounddevice==0.5" \
-    "sphn>=0.2,<0.3" \
+    "sphn>=0.1.4,<0.2" \
     "aiohttp>=3.10.5,<3.11" \
     requests
 
-  "$VENV_DIR/bin/python" -m pip install --no-cache-dir "moshi==0.2.13"
-
-  if [[ -f "$ROOT_DIR/personaplex-setup/moshi/pyproject.toml" ]]; then
-    log "installing fork runtime from personaplex-setup/moshi"
-    "$VENV_DIR/bin/python" -m pip install --no-deps -e "$ROOT_DIR/personaplex-setup/moshi"
-  else
-    log "fork runtime is not materialized at personaplex-setup/moshi; packaged moshi fallback is installed"
-  fi
+  [[ -f "$RUNTIME_DIR/pyproject.toml" && -f "$RUNTIME_DIR/moshi/server.py" ]] \
+    || fail "vendored PersonaPlex runtime is missing at $RUNTIME_DIR; checkout a complete fork before setup"
+  log "installing vendored PersonaPlex runtime from $RUNTIME_DIR"
+  "$VENV_DIR/bin/python" -m pip install --no-deps -e "$RUNTIME_DIR"
+  PYTHONPATH="$ROOT_DIR:$RUNTIME_DIR" "$VENV_DIR/bin/python" -m personaplex_nf4.build_kernel
 }
 
 download_model() {
@@ -200,11 +199,18 @@ print("cuda_available", torch.cuda.is_available())
 print("cuda_version", torch.version.cuda)
 if not torch.cuda.is_available():
     raise SystemExit("torch.cuda.is_available() is false")
-for name in ("aiohttp", "sentencepiece", "sphn", "safetensors", "huggingface_hub", "moshi"):
+for name in ("aiohttp", "sentencepiece", "sphn", "safetensors", "huggingface_hub", "moshi", "personaplex_nf4"):
     importlib.import_module(name)
 if importlib.util.find_spec("moshi.server") is None:
     raise SystemExit("moshi.server is not importable")
 print("dependency_imports ok")
+PY
+
+  PYTHONPATH="$ROOT_DIR:$RUNTIME_DIR" "$VENV_DIR/bin/python" - "$MODEL_DIR/model-nf4.safetensors" <<'PY'
+import sys
+from personaplex_nf4.direct_nf4 import verify_nf4_checkpoint
+verify_nf4_checkpoint(sys.argv[1])
+print("direct_nf4_checkpoint ok")
 PY
 
   local missing=()

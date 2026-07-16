@@ -1,0 +1,95 @@
+--- a/moshi/models/lm.py
++++ b/moshi/models/lm.py
+@@ -441,10 +441,17 @@
+     def forward_codes(
+         self,
+         sequence: torch.Tensor,
++        streaming_sum: torch.Tensor | None = None,
+     ) -> tuple[torch.Tensor, torch.Tensor]:
+-        return self.forward_embeddings(self.embed_codes(sequence))
++        return self.forward_embeddings(self.embed_codes(sequence), streaming_sum=streaming_sum)
+     
+-    def forward_embeddings(self, input: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
++    def forward_embeddings(
++        self, input: torch.Tensor, streaming_sum: torch.Tensor | None = None
++    ) -> tuple[torch.Tensor, torch.Tensor]:
++        if streaming_sum is not None:
++            if streaming_sum.shape != input.shape:
++                raise ValueError("streaming_sum must match input embeddings [batch, frames, hidden]")
++            input = input + streaming_sum.to(device=input.device, dtype=input.dtype)
+         # print("EMBED:", input[0, 0, :10].float().cpu().tolist()) # DEBUG
+         transformer_out = self.transformer(input)
+         if self.out_norm:
+@@ -560,11 +567,15 @@
+     graphed_main: CUDAGraphed
+     graphed_embeddings: CUDAGraphed
+     graphed_depth: CUDAGraphed
++    condition_streaming_sum: torch.Tensor
++    pending_streaming_sums: list[torch.Tensor | None]
+     offset: int = 0
+ 
+     def reset(self):
+         self.offset = 0
+         self.provided[:] = False
++        self.condition_streaming_sum.zero_()
++        self.pending_streaming_sums = [None] * self.cache.shape[0]
+ 
+ 
+ @torch.no_grad()
+@@ -721,7 +732,40 @@
+         graphed_embeddings = CUDAGraphed(lm_model.forward_embeddings, disable=disable)
+         graphed_depth = CUDAGraphed(self.depformer_step, disable=disable)
+ 
+-        return _LMGenState(cache, provided, initial, graphed_main, graphed_embeddings, graphed_depth)
++        condition_streaming_sum = torch.zeros(
++            batch_size, 1, lm_model.dim, device=lm_model.device, dtype=lm_model.dtype
++        )
++        return _LMGenState(
++            cache, provided, initial, graphed_main, graphed_embeddings, graphed_depth,
++            condition_streaming_sum, [None] * batch_size,
++        )
++
++    def update_streaming_sum_tensors(self, tensors: list[torch.Tensor | None]) -> None:
++        """Queue one ``[frames, hidden]`` evidence stream per native batch slot."""
++        state = self._streaming_state
++        if state is None:
++            raise RuntimeError("streaming-sum updates require an active LMGen streaming session")
++        if len(tensors) != state.cache.shape[0]:
++            raise ValueError("streaming-sum update count must equal LMGen batch size")
++        for index, tensor in enumerate(tensors):
++            if tensor is not None:
++                if tensor.ndim != 2 or tensor.shape[1] != self.lm_model.dim:
++                    raise ValueError("streaming-sum rows must be [frames, hidden]")
++                state.pending_streaming_sums[index] = tensor.to(
++                    device=self.lm_model.device, dtype=self.lm_model.dtype
++                )
++
++    def apply_pending_streaming_sum_condition(self) -> None:
++        """Consume one queued evidence row for each batch slot before one live step."""
++        state = self._streaming_state
++        if state is None:
++            raise RuntimeError("streaming-sum application requires an active LMGen streaming session")
++        for index, pending in enumerate(state.pending_streaming_sums):
++            if pending is not None and pending.shape[0] > 0:
++                state.condition_streaming_sum[index, 0] = pending[0]
++                state.pending_streaming_sums[index] = pending[1:] if pending.shape[0] > 1 else None
++            else:
++                state.condition_streaming_sum[index, 0].zero_()
+     
+     @torch.no_grad()
+     def prepare_step_input(self,
+@@ -836,7 +880,8 @@
+         embeddings = None
+         if return_embeddings:
+             embeddings = self.lm_model.embed_codes(input_)
+-        transformer_out, text_logits = state.graphed_main(input_)
++        self.apply_pending_streaming_sum_condition()
++        transformer_out, text_logits = state.graphed_main(input_, state.condition_streaming_sum)
+         output = self.process_transformer_output(
+             transformer_out,
+             text_logits,
+@@ -1175,4 +1220,3 @@
+             return tokens, all_logits
+         else:
+             return tokens
+-
