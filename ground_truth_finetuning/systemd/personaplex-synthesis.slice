@@ -2,8 +2,10 @@
 Description=PersonaPlex synthetic-data resource budget
 
 [Slice]
-# Generation performs the authoritative host-wide backpressure check at 80%
-# used RAM (resuming at 75%), so this is only a last-resort slice safety cap.
-MemoryHigh=226G
-MemoryMax=240G
+# Generation reads /proc/meminfo before every group and applies the
+# authoritative host-wide 80%/75% pause-resume policy, including other
+# services. These systemd limits are percentages of discovered physical RAM,
+# so the slice remains a later safety net on any host without fixed byte caps.
+MemoryHigh=85%
+MemoryMax=90%
 MemorySwapMax=0
