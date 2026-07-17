@@ -2,6 +2,8 @@
 Description=PersonaPlex synthetic-data resource budget
 
 [Slice]
-MemoryHigh=96G
-MemoryMax=112G
+# Generation performs the authoritative host-wide backpressure check at 80%
+# used RAM (resuming at 75%), so this is only a last-resort slice safety cap.
+MemoryHigh=226G
+MemoryMax=240G
 MemorySwapMax=0
