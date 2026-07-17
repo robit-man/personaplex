@@ -1,0 +1,21 @@
+[Unit]
+Description=PersonaPlex V7 certified synthesis lane %i
+Requires=personaplex-v7-voicebox-worker@%i.service
+After=personaplex-v7-voicebox-worker@%i.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/roko/Documents/Projects/github_repos/vox_docker_eval/voryn
+Environment=PATH=/home/roko/.nvm/versions/node/v24.14.0/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/run-v7-lane-service.sh %i
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=90
+KillSignal=SIGTERM
+Slice=personaplex-synthesis.slice
+StandardOutput=append:/srv/voxrn_cache/personaplex-systemd/worker%i-lane.log
+StandardError=append:/srv/voxrn_cache/personaplex-systemd/worker%i-lane.log
+
+[Install]
+WantedBy=default.target
