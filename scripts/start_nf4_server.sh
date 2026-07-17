@@ -15,6 +15,8 @@ DEFAULT_STATIC_DIR="${PERSONAPLEX_STATIC_DIR:-$ROOT_DIR/.cache/personaplex/stati
 STATIC="${PERSONAPLEX_STATIC:-}"
 LOG_FILE="${PERSONAPLEX_LOG_FILE:-$ROOT_DIR/server_nf4.log}"
 PID_FILE="${PERSONAPLEX_PID_FILE:-$ROOT_DIR/server_nf4.pid}"
+QUALITY_GATE="${PERSONAPLEX_NF4_QUALITY_GATE:-required}"
+QUALITY_REPORT="${PERSONAPLEX_NF4_QUALITY_REPORT:-$ROOT_DIR/.cache/personaplex/nf4-quality-report.json}"
 
 fail() {
   printf '[personaplex-server] ERROR: %s\n' "$*" >&2
@@ -29,6 +31,7 @@ fail() {
 [[ -s "$MODEL_DIR/tokenizer_spm_32k_3.model" ]] || fail "missing text tokenizer in $MODEL_DIR"
 [[ -d "$VOICE_PROMPT_DIR" ]] || fail "missing voice prompt directory: $VOICE_PROMPT_DIR"
 [[ "$DTYPE" == "fp16" || "$DTYPE" == "bf16" ]] || fail "PERSONAPLEX_NF4_DTYPE must be fp16 or bf16"
+[[ "$QUALITY_GATE" == "required" || "$QUALITY_GATE" == "off" ]] || fail "PERSONAPLEX_NF4_QUALITY_GATE must be required or off"
 
 if [[ -z "$STATIC" ]]; then
   if [[ -s "$DEFAULT_STATIC_DIR/index.html" ]]; then
@@ -59,6 +62,10 @@ if not torch.cuda.is_available():
     raise SystemExit("direct NF4 requires CUDA; CPU execution is disabled")
 verify_nf4_checkpoint(sys.argv[1])
 PY
+
+if [[ "$QUALITY_GATE" == "required" ]]; then
+  "$VENV_DIR/bin/python" "$ROOT_DIR/scripts/verify_nf4_quality_gate.py" --report "$QUALITY_REPORT"
+fi
 
 server_supports_arg() {
   "$VENV_DIR/bin/python" -m moshi.server --help 2>&1 | grep -q -- "$1"
