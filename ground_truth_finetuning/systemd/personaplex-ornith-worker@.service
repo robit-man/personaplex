@@ -5,6 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+Slice=personaplex-synthesis.slice
 MemoryHigh=48G
 MemoryMax=56G
 MemorySwapMax=0

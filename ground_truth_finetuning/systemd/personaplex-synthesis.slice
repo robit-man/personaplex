@@ -1,0 +1,7 @@
+[Unit]
+Description=PersonaPlex synthetic-data resource budget
+
+[Slice]
+MemoryHigh=56G
+MemoryMax=64G
+MemorySwapMax=0

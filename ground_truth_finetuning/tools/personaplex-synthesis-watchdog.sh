@@ -9,6 +9,9 @@ readonly RUNTIME_ENV="/srv/voxrn_cache/personaplex-systemd/personaplex-runtime.e
 readonly LOG_DIR="/srv/voxrn_cache/personaplex-systemd"
 readonly LOG_FILE="${LOG_DIR}/personaplex-synthesis-watchdog.log"
 readonly STALE_SECONDS="${PERSONAPLEX_SYNTHESIS_STALE_SECONDS:-1800}"
+readonly HOST_MEMORY_MAX_PERCENT="${PERSONAPLEX_SYNTHESIS_HOST_MEMORY_MAX_PERCENT:-80}"
+readonly HOST_MEMORY_RESUME_PERCENT="${PERSONAPLEX_SYNTHESIS_HOST_MEMORY_RESUME_PERCENT:-75}"
+readonly MEMORY_PRESSURE_FILE="${LOG_DIR}/personaplex-synthesis-host-memory-pressure"
 
 mkdir -p "$LOG_DIR"
 [[ -r "$RUNTIME_ENV" ]] || { printf '%s event=runtime_contract_missing path=%s\n' "$(date -Is)" "$RUNTIME_ENV" >>"$LOG_FILE"; exit 78; }
@@ -17,6 +20,21 @@ source "$RUNTIME_ENV"
 log() {
   printf '%s %s\n' "$(date -Is)" "$*" >>"$LOG_FILE"
 }
+
+host_memory_percent() {
+  awk '/MemTotal:/ { total=$2 } /MemAvailable:/ { available=$2 } END { if (total > 0) printf "%.2f", (total - available) * 100 / total; else exit 1 }' /proc/meminfo
+}
+
+host_memory_percent_now="$(host_memory_percent)"
+if awk -v used="$host_memory_percent_now" -v max="$HOST_MEMORY_MAX_PERCENT" 'BEGIN { exit !(used >= max) }'; then
+  printf '%s\n' "$host_memory_percent_now" >"$MEMORY_PRESSURE_FILE"
+  log "event=host_memory_backpressure used_percent=$host_memory_percent_now max_percent=$HOST_MEMORY_MAX_PERCENT action=skip_restarts"
+  exit 0
+fi
+if [[ -e "$MEMORY_PRESSURE_FILE" ]] && awk -v used="$host_memory_percent_now" -v resume="$HOST_MEMORY_RESUME_PERCENT" 'BEGIN { exit !(used <= resume) }'; then
+  rm -f "$MEMORY_PRESSURE_FILE"
+  log "event=host_memory_backpressure_released used_percent=$host_memory_percent_now resume_percent=$HOST_MEMORY_RESUME_PERCENT"
+fi
 
 unit_running() {
   [[ "$(systemctl --user is-active "$1" 2>/dev/null || true)" == "active" ]]
