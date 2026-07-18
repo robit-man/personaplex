@@ -42,9 +42,15 @@ def _require_uniform_prefix_position(prefix_at: Tensor | int, batch_size: int, s
     return prefix_at
 
 
-def _drop_inserted_prefix(sequence: Tensor, prefix_at: int, prefix_frames: int) -> Tensor:
+def _drop_inserted_prefix(sequence: Tensor, prefix_at: int, prefix_frames: int, *, time_dimension: int) -> Tensor:
+    if sequence.shape[time_dimension] < prefix_at + prefix_frames:
+        raise ValueError("native output is shorter than the inserted semantic prefix")
+    before = [slice(None)] * sequence.ndim
+    after = [slice(None)] * sequence.ndim
+    before[time_dimension] = slice(None, prefix_at)
+    after[time_dimension] = slice(prefix_at + prefix_frames, None)
     return torch.cat(
-        [sequence[:, :prefix_at], sequence[:, prefix_at + prefix_frames :]], dim=1
+        [sequence[tuple(before)], sequence[tuple(after)]], dim=time_dimension
     )
 
 
@@ -100,8 +106,12 @@ def forward_with_semantic_prefix(
         )
     else:
         transformer_all, text_all = lm_model.forward_embeddings(injected)
-    transformer_out = _drop_inserted_prefix(transformer_all, prefix_at_int, prefix_embeddings.shape[1])
-    text_logits = _drop_inserted_prefix(text_all, prefix_at_int, prefix_embeddings.shape[1])
+    transformer_out = _drop_inserted_prefix(
+        transformer_all, prefix_at_int, prefix_embeddings.shape[1], time_dimension=1
+    )
+    text_logits = _drop_inserted_prefix(
+        text_all, prefix_at_int, prefix_embeddings.shape[1], time_dimension=2
+    )
     audio_logits = lm_model.forward_depformer_training(target_codes, transformer_out)
     audio_logits, audio_mask = _undelay_sequence(
         lm_model.delays[lm_model.audio_offset : lm_model.audio_offset + lm_model.dep_q],
@@ -182,8 +192,12 @@ def forward_with_semantic_prefix_and_evidence(
         raise RuntimeError(
             "native PersonaPlex source lacks streaming_sum support; apply the maintained Moshirag compatibility patch"
         ) from exc
-    transformer_out = _drop_inserted_prefix(transformer_all, prefix_at_int, prefix_embeddings.shape[1])
-    text_logits = _drop_inserted_prefix(text_all, prefix_at_int, prefix_embeddings.shape[1])
+    transformer_out = _drop_inserted_prefix(
+        transformer_all, prefix_at_int, prefix_embeddings.shape[1], time_dimension=1
+    )
+    text_logits = _drop_inserted_prefix(
+        text_all, prefix_at_int, prefix_embeddings.shape[1], time_dimension=2
+    )
     audio_logits = lm_model.forward_depformer_training(target_codes, transformer_out)
     audio_logits, audio_mask = _undelay_sequence(
         lm_model.delays[lm_model.audio_offset : lm_model.audio_offset + lm_model.dep_q],
