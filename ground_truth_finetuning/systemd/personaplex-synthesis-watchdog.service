@@ -3,5 +3,5 @@ Description=PersonaPlex synthesis lane health watchdog
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/srv/voxrn_cache/personaplex-systemd/personaplex-runtime.env
 ExecStart=/srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/personaplex-synthesis-watchdog.sh
-

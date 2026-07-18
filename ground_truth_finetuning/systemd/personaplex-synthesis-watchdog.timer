@@ -1,9 +1,9 @@
 [Unit]
-Description=Run PersonaPlex synthesis watchdog every 10 minutes
+Description=Run PersonaPlex synthesis watchdog every 20 minutes
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=10min
+OnUnitActiveSec=20min
 Persistent=true
 Unit=personaplex-synthesis-watchdog.service
 

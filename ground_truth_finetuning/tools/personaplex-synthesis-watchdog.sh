@@ -12,6 +12,7 @@ readonly STALE_SECONDS="${PERSONAPLEX_SYNTHESIS_STALE_SECONDS:-1800}"
 readonly HOST_MEMORY_MAX_PERCENT="${PERSONAPLEX_SYNTHESIS_HOST_MEMORY_MAX_PERCENT:-80}"
 readonly HOST_MEMORY_RESUME_PERCENT="${PERSONAPLEX_SYNTHESIS_HOST_MEMORY_RESUME_PERCENT:-75}"
 readonly MEMORY_PRESSURE_FILE="${LOG_DIR}/personaplex-synthesis-host-memory-pressure"
+readonly DATASET_ROOT="/srv/voxrn_cache/personaplex-lanes"
 
 mkdir -p "$LOG_DIR"
 [[ -r "$RUNTIME_ENV" ]] || { printf '%s event=runtime_contract_missing path=%s\n' "$(date -Is)" "$RUNTIME_ENV" >>"$LOG_FILE"; exit 78; }
@@ -63,6 +64,15 @@ restart_if_dead() {
   log "event=unit_restarted unit=$unit reason=inactive"
 }
 
+latest_artifact_epoch() {
+  local directory="$1"
+  [[ -d "$directory" ]] || return 0
+  find "$directory" -type f \( -name '*.wav' -o -name '*.jsonl' \) -printf '%T@\n' 2>/dev/null \
+    | sort -nr \
+    | head -n 1 \
+    | cut -d. -f1
+}
+
 port_for_lane() {
   case "$1:$2" in
     0:voicebox) printf '%s' "$PERSONAPLEX_VOICEBOX_LANE0_PORT" ;;
@@ -104,7 +114,17 @@ for lane in 0 1 2; do
     last_activity="$(stat -c %Y "$activity")"
     age=$(( $(date +%s) - last_activity ))
     if (( age > STALE_SECONDS )); then
-      log "event=stale_progress lane=$lane age_seconds=$age admitted=$admitted unresolved=$unresolved replacement_required=$replacement action=preserved_for_diagnosis"
+      artifact_epoch="$(latest_artifact_epoch "${DATASET_ROOT}/gpu${lane}/datasets/synthesize")"
+      artifact_age=""
+      if [[ "$artifact_epoch" =~ ^[0-9]+$ ]]; then
+        artifact_age=$(( $(date +%s) - artifact_epoch ))
+      fi
+      if [[ "$artifact_age" =~ ^[0-9]+$ ]] && (( artifact_age > STALE_SECONDS )); then
+        restart_unit "personaplex-v7-lane@${lane}.service"
+        log "event=stale_lane_restarted lane=$lane activity_age_seconds=$age artifact_age_seconds=$artifact_age admitted=$admitted unresolved=$unresolved replacement_required=$replacement"
+      else
+        log "event=stale_log_with_fresh_artifact lane=$lane activity_age_seconds=$age artifact_age_seconds=${artifact_age:-unknown} admitted=$admitted unresolved=$unresolved replacement_required=$replacement"
+      fi
     else
       log "event=lane_healthy lane=$lane activity_age_seconds=$age admitted=$admitted unresolved=$unresolved replacement_required=$replacement"
     fi
