@@ -405,14 +405,20 @@ def train(args: argparse.Namespace) -> int:
     # installations can calibrate it through the environment contract.
     model_headroom = env_float("PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO", 1.50)
     dynamic_min_free_gib = model_gib * model_headroom
+    requested_world_size = min(
+        len(state["allowedGpus"]),
+        env_int("PERSONAPLEX_TRAIN_MAX_WORLD_SIZE", 1),
+    )
+    if requested_world_size < 1:
+        raise RuntimeError("PERSONAPLEX_TRAIN_MAX_WORLD_SIZE must admit at least one configured GPU")
     command = [
         sys.executable, str(TOOLS / "launch_semantic_prefix.py"),
         "--manifest", state["encodedManifest"], "--artifact-root", state["artifactRoot"],
         "--certificate", state["certificate"], "--model-contract", state["modelContract"],
         "--moshi-source-root", state["moshiSourceRoot"], "--moshi-path", str(moshi_path),
         "--tokenizer-path", state["tokenizerPath"], "--run-root", str(run_root),
-        "--world-size", str(len(state["allowedGpus"])),
-        "--min-world-size", str(min(len(state["allowedGpus"]), env_int("PERSONAPLEX_TRAIN_MIN_WORLD_SIZE", 1))),
+        "--world-size", str(requested_world_size),
+        "--min-world-size", str(min(requested_world_size, env_int("PERSONAPLEX_TRAIN_MIN_WORLD_SIZE", 1))),
         "--max-steps", str(env_int("PERSONAPLEX_TRAIN_MAX_STEPS", 12000)),
         "--checkpoint-every", str(env_int("PERSONAPLEX_TRAIN_CHECKPOINT_EVERY", 500)),
         "--eval-examples", str(env_int("PERSONAPLEX_TRAIN_EVAL_EXAMPLES", 256)),

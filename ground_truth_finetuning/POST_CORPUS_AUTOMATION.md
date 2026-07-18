@@ -65,6 +65,12 @@ admission report records both requested and effective world size. Publication
 attests the immutable certified-call count separately from the smaller set of
 target turns that pass label-leak and native-tensor admission.
 
+`PERSONAPLEX_TRAIN_MAX_WORLD_SIZE` defaults to `1`. The frozen 7B base is
+replicated per rank, so this establishes a real checkpoint and evaluator result
+without turning rank startup or DDP synchronization into the first deployment
+gate. Raise it only after a measured distributed checkpoint proves rank loading
+and synchronization on the current host.
+
 The default training memory floor is derived from the inspected Moshi model-file
 size multiplied by `PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO` (default `1.50`,
 calibrated from measured native adapter residency). Each GPU also retains
