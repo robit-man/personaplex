@@ -20,6 +20,12 @@ are the existing live host-memory guard and GPU admission; no memory capacity is
 encoded in this automation. The HF token belongs only in the mode-`0600`
 `personaplex-hf.env` file and is never committed.
 
+`PERSONAPLEX_PYTHON` selects the interpreter used by finalization, training, and
+publication. It must contain CUDA-enabled PyTorch, `sentencepiece==0.2`, and
+`huggingface_hub`; the systemd units invoke a tracked launcher so child pipeline
+commands inherit the same interpreter rather than silently falling back to the
+host Python.
+
 Use `systemd/personaplex-transition.env.example` as the tracked configuration
 contract. The codec artifact is SHA-256 checked by native preparation against
 the model contract before tensor encoding or training; a missing or mismatched
