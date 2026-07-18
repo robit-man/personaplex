@@ -152,6 +152,20 @@ def target_control_issues(record: dict[str, Any]) -> list[str]:
     return issues
 
 
+def target_training_issues(record: dict[str, Any]) -> list[str]:
+    """Return label-local exclusions without invalidating causal neighbour turns."""
+    issues = target_control_issues(record)
+    if record.get("speaker") != "target":
+        return issues
+    if (record.get("replay") or {}).get("role") == "shared_prefix_context_only":
+        return issues
+    if record.get("schema") == "voxrn.synthetic-conversation.v4" and not isinstance(
+        (record.get("control") or {}).get("evidence"), dict
+    ):
+        issues.append("v4_target_evidence_missing")
+    return sorted(set(issues))
+
+
 def interruption_issues(records: list[dict[str, Any]]) -> list[str]:
     """Require real audio overlap and a recovery response when coverage says barge-in."""
     issues: list[str] = []
@@ -210,8 +224,6 @@ def conversation_issues(records: list[dict[str, Any]]) -> tuple[list[dict[str, A
             issues.append(f"turn_{turn}_audio_missing")
         if record.get("speaker") == "caller" and record.get("authenticity", {}).get("status") != "batch_certified":
             issues.append(f"turn_{turn}_caller_authenticity_certificate_missing")
-        if record.get("speaker") == "target":
-            issues.extend(f"turn_{turn}_{item}" for item in target_control_issues(record))
     timeline_path, timeline = find_timeline(ordered)
     if not timeline:
         issues.append("duplex_timeline_missing")
@@ -383,26 +395,51 @@ def main() -> int:
     diagnostics: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
     admitted_conversations = 0
+    quarantined_target_turns = 0
     for conversation_id, raw_records in sorted(conversations.items()):
-        records, issues, _timeline = conversation_issues(raw_records)
-        admitted = not issues
-        if not admitted:
-            rejected.append({"conversationId": conversation_id, "issues": issues})
-        if not admitted and not args.allow_incomplete:
+        records, conversation_level_issues, _timeline = conversation_issues(raw_records)
+        if conversation_level_issues:
+            rejected.append({
+                "scope": "conversation", "conversationId": conversation_id,
+                "issues": conversation_level_issues,
+            })
+        if conversation_level_issues and not args.allow_incomplete:
+            continue
+        eligible_targets = []
+        for record in records:
+            if record.get("speaker") != "target":
+                continue
+            if (record.get("replay") or {}).get("role") == "shared_prefix_context_only":
+                continue
+            target_issues = target_training_issues(record)
+            if target_issues:
+                quarantined_target_turns += 1
+                rejected.append({
+                    "scope": "target_turn", "conversationId": conversation_id,
+                    "turnIndex": record.get("turnIndex"), "issues": target_issues,
+                })
+                continue
+            eligible_targets.append(record)
+        if not eligible_targets and not args.allow_incomplete:
+            rejected.append({
+                "scope": "conversation", "conversationId": conversation_id,
+                "issues": ["no_training_eligible_target_turns"],
+            })
             continue
         safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", conversation_id)
         duplex = materialize_duplex(records, root / "audio" / f"{safe_name}.wav", args.sample_rate)
         target_rows = [
             target_example(record, duplex, root, records)
-            for record in records
-            if record.get("speaker") == "target"
-            and (record.get("schema") != "voxrn.synthetic-conversation.v4" or isinstance((record.get("control") or {}).get("evidence"), dict))
+            for record in eligible_targets
         ]
-        if admitted:
+        if not conversation_level_issues and target_rows:
             admitted_conversations += 1
             examples.extend(target_rows)
         else:
-            diagnostics.extend([{**row, "trainingAdmitted": False, "rejectionIssues": issues} for row in target_rows])
+            diagnostics.extend([{
+                **row, "trainingAdmitted": False,
+                "rejectionIssues": conversation_level_issues or ["no_training_eligible_target_turns"],
+            } for row in target_rows])
 
     write_jsonl(root / "examples.jsonl", examples)
     write_jsonl(root / "diagnostic_examples.jsonl", diagnostics)
@@ -416,6 +453,7 @@ def main() -> int:
         "admittedExampleCount": len(examples),
         "diagnosticExampleCount": len(diagnostics),
         "rejectedConversationCount": len(rejected),
+        "quarantinedTargetTurnCount": quarantined_target_turns,
         "strict": not args.allow_incomplete,
         "files": {
             "examples": "examples.jsonl",

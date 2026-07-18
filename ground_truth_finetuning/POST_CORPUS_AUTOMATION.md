@@ -5,7 +5,7 @@ until the configured target count is reached. At the threshold it performs one
 immutable transition:
 
 1. Snapshot only the explicitly allowlisted `*.certified.jsonl` artifact
-   families and their referenced audio.
+   families, their referenced audio, and their duplex-timing sidecars.
 2. Require V4 schema, accepted audio quality, target semantic certification,
    training eligibility, control frames, and safe audio paths.
 3. Stop synthesis services after the snapshot so native encoding and training can
@@ -30,6 +30,13 @@ allowlist evaluated beneath each configured GPU's synthesis directory. Add a
 new replenishment family there only after reviewing its schema, provenance, and
 quality gates. The coordinator rejects path separators and parent traversal and
 does not discover arbitrary historical certified artifacts.
+
+The native exporter distinguishes conversation-integrity failures from
+target-label failures. Missing audio, invalid timing, malformed timelines, and
+failed interruption coverage reject the whole conversation. A target turn whose
+own control state contains its target wording is quarantined by itself; valid
+causally independent target turns from the same duplex conversation remain
+available for agent-only supervision.
 
 ## Host memory policy
 

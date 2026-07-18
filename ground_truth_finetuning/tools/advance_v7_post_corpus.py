@@ -167,6 +167,13 @@ def snapshot_corpus(dataset_root: Path, sources: list[Path], work_root: Path, na
         for record in records:
             relative_audio = relative_audio_path(record.get("audioPath"))
             hardlink_or_copy(source.parent / relative_audio, destination.parent / relative_audio)
+            timeline_reference = record.get("duplexTimelinePath")
+            if timeline_reference:
+                relative_timeline = relative_audio_path(timeline_reference)
+                hardlink_or_copy(
+                    source.parent / relative_timeline,
+                    destination.parent / relative_timeline,
+                )
         conversation_ids.update(ids)
         record_count += len(records)
         source_manifest.append({
