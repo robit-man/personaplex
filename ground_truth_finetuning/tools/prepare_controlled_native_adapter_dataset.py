@@ -18,6 +18,7 @@ if str(GTFT_TOOL_ROOT) not in sys.path:
 import argparse
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -48,6 +49,13 @@ def sha256_file(path: Path) -> str:
 
 def sha256_text(value: str) -> str:
     return "sha256:" + sha256(value.encode("utf-8")).hexdigest()
+
+
+def hardlink_or_copy(source: Path, destination: Path) -> None:
+    try:
+        os.link(source, destination)
+    except OSError:
+        shutil.copy2(source, destination)
 
 
 def normalise(value: str) -> str:
@@ -169,7 +177,7 @@ def prepare(example: dict[str, Any], export_root: Path, output_root: Path) -> tu
     stem = stable_id.removeprefix("sha256:")
     audio_rel = Path("audio") / f"{stem}.wav"
     destination = output_root / audio_rel
-    shutil.copy2(source_audio, destination)
+    hardlink_or_copy(source_audio, destination)
     target = example["target"]
     info = {
         "schema_version": 2,
