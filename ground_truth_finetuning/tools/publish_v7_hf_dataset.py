@@ -106,7 +106,14 @@ def main() -> int:
     api = HfApi(token=token)
     private = os.environ.get("PERSONAPLEX_HF_PRIVATE", "1").strip() != "0"
     api.create_repo(repo_id=repo_id, repo_type="dataset", private=private, exist_ok=True)
-    api.upload_large_folder(repo_id=repo_id, repo_type="dataset", folder_path=str(publish_root))
+    upload_large_folder = getattr(api, "upload_large_folder", None)
+    if callable(upload_large_folder):
+        upload_large_folder(repo_id=repo_id, repo_type="dataset", folder_path=str(publish_root))
+    else:
+        api.upload_folder(
+            repo_id=repo_id, repo_type="dataset", folder_path=str(publish_root),
+            commit_message="Publish certified PersonaPlex V7 semantic-control corpus",
+        )
     publication = {
         "schema": "personaplex.huggingface-publication.v1", "publishedAt": datetime.now(timezone.utc).isoformat(),
         "repoId": repo_id, "private": private, "sourceExport": str(export_root),

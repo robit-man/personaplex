@@ -65,6 +65,10 @@ admission report records both requested and effective world size. Publication
 attests the immutable certified-call count separately from the smaller set of
 target turns that pass label-leak and native-tensor admission.
 
+Publication uses `HfApi.upload_large_folder` when available and falls back to
+the compatible `upload_folder` API for older pinned Hugging Face clients. Both
+paths publish only the staged, private, certified export.
+
 ## Host memory policy
 
 Install `systemd/user@.service.d/90-personaplex-resource-governor.conf` on a
