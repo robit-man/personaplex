@@ -23,3 +23,14 @@ Use `systemd/personaplex-transition.env.example` as the tracked configuration
 contract. The codec artifact is SHA-256 checked by native preparation against
 the model contract before tensor encoding or training; a missing or mismatched
 codec blocks the handoff without mutating the source corpus.
+
+## Host memory policy
+
+Install `systemd/user@.service.d/90-personaplex-resource-governor.conf` on a
+host that uses the distribution `systemd-oomd` user-manager default. It
+prevents the inherited 50% PSI kill policy from terminating synthesis workers
+while host memory remains available. The live synthesis governor remains the
+authoritative dynamic control: it measures `MemTotal` and `MemAvailable` for
+the whole host, pauses at its configured 80% utilization threshold, and
+resumes at 75%. The synthesis slice still has percentage-based `MemoryHigh`
+and `MemoryMax` limits as a final cgroup safety net.
