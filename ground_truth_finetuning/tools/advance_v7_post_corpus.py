@@ -398,19 +398,23 @@ def train(args: argparse.Namespace) -> int:
     # make a later retry look successful.  systemd serializes a running service,
     # so an executing train run is never duplicated by this code path.
     run_root = Path(state["outputRoot"]) / "06_training_execution" / f"attempt-{utc_now()}"
+    moshi_path = Path(state["moshiPath"])
+    model_gib = moshi_path.stat().st_size / (1024 ** 3)
+    model_headroom = env_float("PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO", 1.10)
+    dynamic_min_free_gib = model_gib * model_headroom
     command = [
         sys.executable, str(TOOLS / "launch_semantic_prefix.py"),
         "--manifest", state["encodedManifest"], "--artifact-root", state["artifactRoot"],
         "--certificate", state["certificate"], "--model-contract", state["modelContract"],
-        "--moshi-source-root", state["moshiSourceRoot"], "--moshi-path", state["moshiPath"],
+        "--moshi-source-root", state["moshiSourceRoot"], "--moshi-path", str(moshi_path),
         "--tokenizer-path", state["tokenizerPath"], "--run-root", str(run_root),
         "--world-size", str(len(state["allowedGpus"])),
         "--min-world-size", str(min(len(state["allowedGpus"]), env_int("PERSONAPLEX_TRAIN_MIN_WORLD_SIZE", 1))),
         "--max-steps", str(env_int("PERSONAPLEX_TRAIN_MAX_STEPS", 12000)),
         "--checkpoint-every", str(env_int("PERSONAPLEX_TRAIN_CHECKPOINT_EVERY", 500)),
         "--eval-examples", str(env_int("PERSONAPLEX_TRAIN_EVAL_EXAMPLES", 256)),
-        "--min-free-gib", str(env_float("PERSONAPLEX_TRAIN_MIN_FREE_GIB", 44.0)),
-        "--reserve-gib", str(env_float("PERSONAPLEX_TRAIN_RESERVE_GIB", 8.0)),
+        "--min-free-gib", str(env_float("PERSONAPLEX_TRAIN_MIN_FREE_GIB", dynamic_min_free_gib)),
+        "--reserve-ratio", str(env_float("PERSONAPLEX_TRAIN_GPU_RESERVE_RATIO", 0.10)),
         "--max-utilization-pct", str(env_int("PERSONAPLEX_TRAIN_MAX_GPU_UTILIZATION_PCT", 25)),
         "--execute",
     ]

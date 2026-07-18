@@ -36,7 +36,8 @@ def main() -> int:
     parser.add_argument("--world-size", type=int, default=1)
     parser.add_argument("--min-world-size", type=int, default=1)
     parser.add_argument("--min-free-gib", type=float, default=44.0)
-    parser.add_argument("--reserve-gib", type=float, default=8.0)
+    parser.add_argument("--reserve-gib", type=float)
+    parser.add_argument("--reserve-ratio", type=float, default=0.10)
     parser.add_argument("--max-utilization-pct", type=int, default=25)
     parser.add_argument("--allow-gpu", action="append", type=int, default=None)
     parser.add_argument("--max-steps", type=int, default=8)
@@ -59,6 +60,7 @@ def main() -> int:
         world_size=args.world_size,
         min_free_gib=args.min_free_gib,
         reserve_gib=args.reserve_gib,
+        reserve_ratio=args.reserve_ratio,
         max_utilization_pct=args.max_utilization_pct,
         allowed_indices=args.allow_gpu,
     )
@@ -69,6 +71,7 @@ def main() -> int:
             world_size=effective_world_size,
             min_free_gib=args.min_free_gib,
             reserve_gib=args.reserve_gib,
+            reserve_ratio=args.reserve_ratio,
             max_utilization_pct=args.max_utilization_pct,
             allowed_indices=args.allow_gpu,
         )

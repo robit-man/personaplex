@@ -65,21 +65,25 @@ def admit_gpus(
     *,
     world_size: int,
     min_free_gib: float,
-    reserve_gib: float,
+    reserve_gib: float | None,
+    reserve_ratio: float,
     max_utilization_pct: int,
     allowed_indices: Iterable[int] | None = None,
 ) -> dict:
     if world_size < 1:
         raise ValueError("world_size must be at least one")
-    if min_free_gib <= 0 or reserve_gib < 0:
+    if min_free_gib <= 0 or (reserve_gib is not None and reserve_gib < 0):
         raise ValueError("memory thresholds must be non-negative and min_free_gib positive")
+    if not 0 <= reserve_ratio < 1:
+        raise ValueError("reserve_ratio must be between zero and one")
     if not 0 <= max_utilization_pct <= 100:
         raise ValueError("max_utilization_pct must be between 0 and 100")
     allowed = set(allowed_indices) if allowed_indices is not None else None
     candidates = []
     decisions = []
     for gpu in query_gpus():
-        after_reserve = gpu.free_gib - reserve_gib
+        effective_reserve_gib = max(reserve_gib or 0.0, gpu.memory_total_mib / 1024 * reserve_ratio)
+        after_reserve = gpu.free_gib - effective_reserve_gib
         reasons = []
         if allowed is not None and gpu.index not in allowed:
             reasons.append("not_in_allowlist")
@@ -90,6 +94,7 @@ def admit_gpus(
         decision = {
             **asdict(gpu),
             "free_gib": round(gpu.free_gib, 2),
+            "reserve_gib": round(effective_reserve_gib, 2),
             "free_gib_after_reserve": round(after_reserve, 2),
             "accepted": not reasons,
             "reasons": reasons,
@@ -107,6 +112,7 @@ def admit_gpus(
             "world_size": world_size,
             "min_free_gib": min_free_gib,
             "reserve_gib": reserve_gib,
+            "reserve_ratio": reserve_ratio,
             "max_utilization_pct": max_utilization_pct,
             "allowed_indices": sorted(allowed) if allowed is not None else None,
         },
@@ -128,7 +134,8 @@ def main() -> int:
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--world-size", type=int, default=1)
     parser.add_argument("--min-free-gib", type=float, default=44.0)
-    parser.add_argument("--reserve-gib", type=float, default=8.0)
+    parser.add_argument("--reserve-gib", type=float)
+    parser.add_argument("--reserve-ratio", type=float, default=0.10)
     parser.add_argument("--max-utilization-pct", type=int, default=25)
     parser.add_argument("--allow-gpu", action="append", type=int, default=None)
     args = parser.parse_args()
@@ -137,6 +144,7 @@ def main() -> int:
             world_size=args.world_size,
             min_free_gib=args.min_free_gib,
             reserve_gib=args.reserve_gib,
+            reserve_ratio=args.reserve_ratio,
             max_utilization_pct=args.max_utilization_pct,
             allowed_indices=args.allow_gpu,
         )

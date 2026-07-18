@@ -65,6 +65,12 @@ admission report records both requested and effective world size. Publication
 attests the immutable certified-call count separately from the smaller set of
 target turns that pass label-leak and native-tensor admission.
 
+The default training memory floor is derived from the inspected Moshi model-file
+size multiplied by `PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO`. Each GPU also
+retains `PERSONAPLEX_TRAIN_GPU_RESERVE_RATIO` of its discovered total memory.
+The immutable admission report records the effective per-GPU reserve, so this
+policy scales without hard-coded server-memory assumptions.
+
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both
 paths publish only the staged, private, certified export.
