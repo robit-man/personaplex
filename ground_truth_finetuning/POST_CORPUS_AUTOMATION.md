@@ -104,6 +104,13 @@ mutable state, recent audible context, and turn-taking. Training refuses a
 held-out split unless that encoded context is effective and at least one genuine
 model-selected terminal target is present.
 
+`encode_controlled_native_adapter_tensors.py` supports deterministic modulo
+shards. Each shard writes only its own manifest and ID-addressed tensor files;
+`merge_controlled_native_tensor_shards.py` refuses missing, duplicate, or
+foreign IDs before creating the manifest that certification consumes. This lets
+the codec phase use dynamically admitted CUDA devices without weakening corpus
+identity or provenance checks.
+
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both
 paths publish only the staged, private, certified export.

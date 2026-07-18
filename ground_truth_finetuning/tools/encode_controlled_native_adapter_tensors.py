@@ -34,7 +34,7 @@ from ground_truth_finetuning.training.contracts import (
 from ground_truth_finetuning.training.native_source import require_moshi_source_contract
 
 
-TOOL_VERSION = "gtft-controlled-native-adapter-encoder-v1"
+TOOL_VERSION = "gtft-controlled-native-adapter-encoder-v2"
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -101,7 +101,11 @@ def main() -> int:
     parser.add_argument("--tokenizer-path", type=Path, required=True)
     parser.add_argument("--model-contract", type=Path, required=True)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--shard-count", type=int, default=1)
     args = parser.parse_args()
+    if args.shard_count < 1 or not 0 <= args.shard_index < args.shard_count:
+        raise SystemExit("shard-count must be positive and shard-index must be in range")
     manifest = args.manifest.resolve()
     precodec_root = args.precodec_root.resolve()
     artifact_root = args.artifact_root.resolve()
@@ -125,8 +129,15 @@ def main() -> int:
         raise SystemExit("pre-codec manifest and control labels have different example ids")
     (artifact_root / "tensors").mkdir(parents=True, exist_ok=True)
     (artifact_root / "alignments").mkdir(exist_ok=True)
+    selected_rows = [
+        (example_id, source_row)
+        for index, (example_id, source_row) in enumerate(sorted(source_rows.items()))
+        if index % args.shard_count == args.shard_index
+    ]
+    if not selected_rows:
+        raise SystemExit("selected tensor-encoding shard is empty")
     encoded_rows = []
-    for example_id, source_row in sorted(source_rows.items()):
+    for example_id, source_row in selected_rows:
         label = labels[example_id]
         frame = validate_control_frame_mapping(label.get("control_frame", {}))
         evidence_mapping = label.get("evidence_frame")
@@ -215,7 +226,8 @@ def main() -> int:
             "prefix_at": start_frame,
         }
         encoded_rows.append(updated)
-    encoded_path = artifact_root / "encoded_examples.jsonl"
+    shard_suffix = "" if args.shard_count == 1 else f".shard-{args.shard_index:02d}-of-{args.shard_count:02d}"
+    encoded_path = artifact_root / f"encoded_examples{shard_suffix}.jsonl"
     encoded_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in encoded_rows), encoding="utf-8")
     report = {
         "schema_version": 2, "kind": "personaplex-controlled-native-adapter-encoding",
@@ -224,9 +236,10 @@ def main() -> int:
         "manifest": str(encoded_path), "manifest_sha256": hash_file(encoded_path),
         "stream_layout": layout.as_dict(), "caller_stream_supervision": "forbidden",
         "codec": codec_artifacts,
+        "shard": {"index": args.shard_index, "count": args.shard_count},
     }
-    (artifact_root / "encoding_report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"status": report["status"], "items": report["items"]}))
+    (artifact_root / f"encoding_report{shard_suffix}.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps({"status": report["status"], "items": report["items"], "shard": report["shard"]}))
     return 0
 
 

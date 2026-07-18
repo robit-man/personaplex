@@ -33,6 +33,12 @@ verifiable stages.
 7. Run `certify_controlled_native_corpus.py`; only
    `certified_for_adapter_training` can be passed to `train_semantic_prefix.py`.
 
+When CUDA capacity is shared, step 6 may be partitioned into deterministic
+modulo shards. Each shard must use the same immutable inputs and a distinct
+`--shard-index`; run `merge_controlled_native_tensor_shards.py` only after all
+shards complete. The merger validates a complete, disjoint ID set against the
+pre-codec manifest before certification can see the unified manifest.
+
 ```bash
 python3 ground_truth_finetuning/tools/prepare_controlled_native_adapter_dataset.py \
   --export-root /srv/voxrn_cache/personaplex/exports/controlled-duplex \
@@ -47,6 +53,23 @@ python3 ground_truth_finetuning/tools/encode_controlled_native_adapter_tensors.p
   --tokenizer-path /srv/voxrn_cache/models/COMPATIBLE_TOKENIZER.model \
   --model-contract /srv/voxrn_cache/personaplex/contracts/COMPATIBLE_BASE.json \
   --device cuda:0
+
+# Optional shared-host form: launch one command per currently admitted CUDA
+# device with the same --shard-count, then merge only after every shard exits 0.
+python3 ground_truth_finetuning/tools/encode_controlled_native_adapter_tensors.py \
+  --manifest /srv/voxrn_cache/personaplex/precodec/controlled-v1/precodec_manifest.jsonl \
+  --precodec-root /srv/voxrn_cache/personaplex/precodec/controlled-v1 \
+  --artifact-root /srv/voxrn_cache/personaplex/tensors/controlled-v1 \
+  --moshi-source-root /srv/voxrn_cache/personaplex/source/moshi \
+  --mimi-path /srv/voxrn_cache/models/COMPATIBLE_MIMI.pt \
+  --tokenizer-path /srv/voxrn_cache/models/COMPATIBLE_TOKENIZER.model \
+  --model-contract /srv/voxrn_cache/personaplex/contracts/COMPATIBLE_BASE.json \
+  --device cuda:1 --shard-index 1 --shard-count 3
+
+python3 ground_truth_finetuning/tools/merge_controlled_native_tensor_shards.py \
+  --source-manifest /srv/voxrn_cache/personaplex/precodec/controlled-v1/precodec_manifest.jsonl \
+  --artifact-root /srv/voxrn_cache/personaplex/tensors/controlled-v1 \
+  --shard-count 3
 
 python3 ground_truth_finetuning/tools/certify_controlled_native_corpus.py \
   --manifest /srv/voxrn_cache/personaplex/tensors/controlled-v1/encoded_examples.jsonl \
