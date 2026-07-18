@@ -70,8 +70,14 @@ def certify_item(item: dict[str, Any], artifact_root: Path, precodec_root: Path)
         if not all(isinstance(target.get(key), int) for key in ("start_ms", "end_ms", "rendered_end_ms")) or not 0 <= target["start_ms"] < target["end_ms"] <= target["rendered_end_ms"]:
             raise ValueError("target audible bounds are invalid")
         quality = item.get("quality", {})
-        if quality.get("accepted") is not True or not isinstance(quality.get("wer"), (int, float)) or quality["wer"] > quality.get("maxAsrWer", 0):
+        wer = quality.get("wer")
+        maximum_wer = quality.get("maxAsrWer")
+        adjudication = quality.get("asrAdjudication")
+        marginal_asr_accepted = isinstance(adjudication, dict) and adjudication.get("accepted") is True
+        if quality.get("accepted") is not True or not isinstance(wer, (int, float)) or not isinstance(maximum_wer, (int, float)):
             raise ValueError("source ASR quality is not accepted")
+        if wer > maximum_wer and not marginal_asr_accepted:
+            raise ValueError("source ASR WER exceeds its accepted threshold without adjudication")
     except (ContractError, ValueError, OSError, wave.Error) as error:
         errors.append(f"source: {error}")
     encoding = item.get("model_encoding", {})

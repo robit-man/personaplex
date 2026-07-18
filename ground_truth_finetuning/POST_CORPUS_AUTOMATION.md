@@ -53,6 +53,12 @@ Partial tensor roots are atomically moved aside with an `incomplete-` suffix
 before a clean re-encode; they remain available for incident analysis but can
 never be mistaken for certified training input.
 
+A failed tensor certificate with a complete encoded manifest resumes at
+certification, not encoding or audio export. Its ASR rule requires an accepted
+quality record and an explicit WER threshold; an over-threshold sample remains
+admissible only when its recorded marginal-ASR adjudicator explicitly accepted
+it. This preserves the upstream quality policy instead of silently widening it.
+
 ## Host memory policy
 
 Install `systemd/user@.service.d/90-personaplex-resource-governor.conf` on a

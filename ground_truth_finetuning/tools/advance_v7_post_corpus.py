@@ -232,7 +232,7 @@ def stop_synthesis() -> None:
     run(["systemctl", "--user", "stop", *units])
 
 
-def reusable_prepared_attempt(work_root: Path, namespace: str) -> tuple[Path, Path, dict[str, Any]] | None:
+def reusable_prepared_attempt(work_root: Path, namespace: str) -> tuple[Path, Path, dict[str, Any], str] | None:
     """Find a complete pre-codec stage that has not yet started tensor encoding.
 
     A failed source-contract or GPU-admission check must not force a new duplex
@@ -250,15 +250,36 @@ def reusable_prepared_attempt(work_root: Path, namespace: str) -> tuple[Path, Pa
         precodec_manifest = output_root / "02_precodec" / "precodec_manifest.jsonl"
         tensor_root = output_root / "03_native_tensors"
         certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
+        encoded_manifest = tensor_root / "encoded_examples.jsonl"
         if not audit_path.is_file() or not precodec_manifest.is_file() or precodec_manifest.stat().st_size == 0:
-            continue
-        if certificate.is_file():
             continue
         audit = read_json(audit_path)
         if audit.get("namespace") != namespace or not isinstance(audit.get("certifiedConversationCount"), int):
             continue
-        return snapshot_root, output_root, audit
+        if certificate.is_file():
+            status = read_json(certificate).get("status")
+            if status == "certified_for_adapter_training":
+                return snapshot_root, output_root, audit, "certified"
+            if encoded_manifest.is_file() and encoded_manifest.stat().st_size > 0:
+                return snapshot_root, output_root, audit, "certify"
+            continue
+        if encoded_manifest.is_file() and encoded_manifest.stat().st_size > 0:
+            return snapshot_root, output_root, audit, "certify"
+        return snapshot_root, output_root, audit, "encode"
     return None
+
+
+def certify_native_tensors(output_root: Path) -> Path:
+    precodec_root = output_root / "02_precodec"
+    artifact_root = output_root / "03_native_tensors"
+    certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
+    run([
+        sys.executable, str(TOOLS / "certify_controlled_native_corpus.py"),
+        "--manifest", str(artifact_root / "encoded_examples.jsonl"),
+        "--artifact-root", str(artifact_root), "--precodec-root", str(precodec_root),
+        "--certificate", str(certificate),
+    ])
+    return certificate
 
 
 def encode_and_certify_precodec(output_root: Path, source_root: Path, mimi_path: Path, tokenizer_path: Path, contract: Path, device: str) -> Path:
@@ -278,13 +299,7 @@ def encode_and_certify_precodec(output_root: Path, source_root: Path, mimi_path:
         "--tokenizer-path", str(tokenizer_path), "--model-contract", str(contract),
         "--device", device,
     ])
-    run([
-        sys.executable, str(TOOLS / "certify_controlled_native_corpus.py"),
-        "--manifest", str(artifact_root / "encoded_examples.jsonl"),
-        "--artifact-root", str(artifact_root), "--precodec-root", str(precodec_root),
-        "--certificate", str(certificate),
-    ])
-    return certificate
+    return certify_native_tensors(output_root)
 
 
 @contextmanager
@@ -322,17 +337,22 @@ def finalise(args: argparse.Namespace) -> int:
         return 0
     reusable = reusable_prepared_attempt(work_root, namespace)
     if reusable:
-        snapshot_root, output_root, audit = reusable
+        snapshot_root, output_root, audit, resume_stage = reusable
     else:
         snapshot_root, audit = snapshot_corpus(dataset_root, sources, work_root, namespace)
         output_root = work_root / "prepared" / snapshot_root.name
+        resume_stage = "pipeline"
     stop_synthesis()
     contract = configured_path("PERSONAPLEX_MODEL_CONTRACT")
     source_root = configured_path("PERSONAPLEX_MOSHI_SOURCE_ROOT")
     mimi_path = configured_path("PERSONAPLEX_MIMI_PATH")
     tokenizer_path = configured_path("PERSONAPLEX_TOKENIZER_PATH")
     encode_device = env_text("PERSONAPLEX_ENCODE_DEVICE", f"cuda:{allowed_gpus()[0]}")
-    if reusable:
+    if resume_stage == "certified":
+        certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
+    elif resume_stage == "certify":
+        certificate = certify_native_tensors(output_root)
+    elif reusable:
         certificate = encode_and_certify_precodec(
             output_root, source_root, mimi_path, tokenizer_path, contract, encode_device
         )
