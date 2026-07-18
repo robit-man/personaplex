@@ -111,6 +111,13 @@ foreign IDs before creating the manifest that certification consumes. This lets
 the codec phase use dynamically admitted CUDA devices without weakening corpus
 identity or provenance checks.
 
+For an already prepared corrected corpus, use
+`activate_prepared_controlv3.py` rather than re-entering the V7 snapshotter.
+It certifies the merged native manifest, writes an isolated state that binds
+the exact tensor root and native model contract, and may start only the named
+control-v3 training unit. This prevents a timer from silently resuming an older
+prepared root after a corrected corpus is produced.
+
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both
 paths publish only the staged, private, certified export.
