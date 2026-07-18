@@ -1,0 +1,10 @@
+[Unit]
+Description=PersonaPlex V7 semantic-prefix training
+After=personaplex-v7-post-corpus.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/srv/voxrn_cache/personaplex-systemd/personaplex-transition.env
+ExecStart=/usr/bin/python3 /srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/advance_v7_post_corpus.py --phase train
+Restart=on-failure
+RestartSec=5min

@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll for a certified PersonaPlex V7 corpus transition
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+Persistent=true
+Unit=personaplex-v7-post-corpus.service
+
+[Install]
+WantedBy=timers.target

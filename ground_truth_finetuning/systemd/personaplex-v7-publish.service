@@ -1,0 +1,11 @@
+[Unit]
+Description=Publish PersonaPlex V7 private Hugging Face dataset
+After=personaplex-v7-post-corpus.service network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/srv/voxrn_cache/personaplex-systemd/personaplex-transition.env
+EnvironmentFile=-/srv/voxrn_cache/personaplex-systemd/personaplex-hf.env
+ExecStart=/usr/bin/python3 /srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/publish_v7_hf_dataset.py
+Restart=on-failure
+RestartSec=5min

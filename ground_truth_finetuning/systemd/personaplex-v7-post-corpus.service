@@ -1,0 +1,8 @@
+[Unit]
+Description=PersonaPlex V7 post-corpus finalizer
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/srv/voxrn_cache/personaplex-systemd/personaplex-transition.env
+ExecStart=/usr/bin/python3 /srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/advance_v7_post_corpus.py --phase finalise

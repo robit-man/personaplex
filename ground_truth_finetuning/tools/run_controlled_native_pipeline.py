@@ -51,7 +51,10 @@ def main() -> int:
     parser.add_argument("--reserve-gib", type=float, default=8.0)
     parser.add_argument("--max-utilization-pct", type=int, default=25)
     parser.add_argument("--execute-training", action="store_true")
+    parser.add_argument("--prepare-only", action="store_true", help="stop after the certified native tensor corpus is written")
     args = parser.parse_args()
+    if args.execute_training and args.prepare_only:
+        raise SystemExit("--execute-training and --prepare-only are mutually exclusive")
     if args.world_size < 1 or args.max_steps < 1 or args.checkpoint_every < 1 or args.eval_examples < 1:
         raise SystemExit("world-size, max-steps, checkpoint-every, and eval-examples must be positive")
     root = args.output_root.resolve()
@@ -85,6 +88,12 @@ def main() -> int:
     certificate_data = json.loads(certificate.read_text(encoding="utf-8"))
     if certificate_data.get("status") != "certified_for_adapter_training":
         raise SystemExit("native tensor certificate did not authorize adapter training")
+    if args.prepare_only:
+        (root / "pipeline_summary.json").write_text(json.dumps({
+            "status": "prepared_for_training",
+            "certificate": str(certificate), "encoded_manifest": str(encoded_manifest),
+        }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return 0
     launch = [
         sys.executable, str(TOOLS / "launch_semantic_prefix.py"),
         "--manifest", str(encoded_manifest), "--artifact-root", str(artifact_root), "--certificate", str(certificate),
