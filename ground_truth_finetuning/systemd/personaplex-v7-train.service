@@ -7,4 +7,4 @@ Type=oneshot
 EnvironmentFile=-/srv/voxrn_cache/personaplex-systemd/personaplex-transition.env
 ExecStart=/srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/run_personaplex_python.sh /srv/personaplex_workspace/robit-man-personaplex/ground_truth_finetuning/tools/advance_v7_post_corpus.py --phase train
 Restart=on-failure
-RestartSec=5min
+RestartSec=1min
