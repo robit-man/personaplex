@@ -118,6 +118,11 @@ the exact tensor root and native model contract, and may start only the named
 control-v3 training unit. This prevents a timer from silently resuming an older
 prepared root after a corrected corpus is produced.
 
+`advance_v7_post_corpus.py --state PATH` treats that explicit path as the
+transition provenance boundary. An inherited `PERSONAPLEX_TRANSITION_STATE`
+may supply the parser default, but may not override an explicit state during
+training or completion writes.
+
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both
 paths publish only the staged, private, certified export.

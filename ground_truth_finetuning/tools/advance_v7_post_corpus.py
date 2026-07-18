@@ -390,7 +390,11 @@ def finalise(args: argparse.Namespace) -> int:
 
 
 def train(args: argparse.Namespace) -> int:
-    state = read_json(Path(env_text("PERSONAPLEX_TRANSITION_STATE", args.state)).resolve())
+    # An explicit --state is a provenance boundary.  Inherited environment from
+    # another transition must never redirect an isolated prepared corpus back to
+    # an older tensor root after the coordinator has acquired its lock.
+    state_path = Path(args.state).resolve()
+    state = read_json(state_path)
     if state.get("status") not in {"prepared", "training_started", "published"}:
         raise RuntimeError("training cannot start before a prepared tensor certificate exists")
     # The native launcher refuses to reuse a run root.  Give every service retry
@@ -433,7 +437,7 @@ def train(args: argparse.Namespace) -> int:
     state["status"] = "training_completed"
     state["trainingRunRoot"] = str(run_root)
     state["trainingCompletedAt"] = datetime.now(timezone.utc).isoformat()
-    write_json(Path(env_text("PERSONAPLEX_TRANSITION_STATE", args.state)).resolve(), state)
+    write_json(state_path, state)
     return 0
 
 
