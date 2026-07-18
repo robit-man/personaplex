@@ -232,6 +232,55 @@ def stop_synthesis() -> None:
     run(["systemctl", "--user", "stop", *units])
 
 
+def reusable_prepared_attempt(work_root: Path, namespace: str) -> tuple[Path, Path, dict[str, Any]] | None:
+    """Find a complete pre-codec stage that has not yet started tensor encoding.
+
+    A failed source-contract or GPU-admission check must not force a new duplex
+    export. Reuse is intentionally narrow: the original immutable snapshot and
+    nonempty pre-codec manifest must both exist, while the tensor output must
+    not exist at all. Any partially written tensor directory is fail-closed and
+    requires a fresh pipeline attempt.
+    """
+    prepared_root = work_root / "prepared"
+    if not prepared_root.is_dir():
+        return None
+    for output_root in sorted(prepared_root.glob(f"v7-{namespace}-*"), key=lambda path: path.stat().st_mtime, reverse=True):
+        snapshot_root = work_root / "snapshots" / output_root.name
+        audit_path = snapshot_root / "corpus_audit.json"
+        precodec_manifest = output_root / "02_precodec" / "precodec_manifest.jsonl"
+        tensor_root = output_root / "03_native_tensors"
+        if not audit_path.is_file() or not precodec_manifest.is_file() or precodec_manifest.stat().st_size == 0:
+            continue
+        if tensor_root.exists():
+            continue
+        audit = read_json(audit_path)
+        if audit.get("namespace") != namespace or not isinstance(audit.get("certifiedConversationCount"), int):
+            continue
+        return snapshot_root, output_root, audit
+    return None
+
+
+def encode_and_certify_precodec(output_root: Path, source_root: Path, mimi_path: Path, tokenizer_path: Path, contract: Path, device: str) -> Path:
+    precodec_root = output_root / "02_precodec"
+    artifact_root = output_root / "03_native_tensors"
+    certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
+    run([
+        sys.executable, str(TOOLS / "encode_controlled_native_adapter_tensors.py"),
+        "--manifest", str(precodec_root / "precodec_manifest.jsonl"),
+        "--precodec-root", str(precodec_root), "--artifact-root", str(artifact_root),
+        "--moshi-source-root", str(source_root), "--mimi-path", str(mimi_path),
+        "--tokenizer-path", str(tokenizer_path), "--model-contract", str(contract),
+        "--device", device,
+    ])
+    run([
+        sys.executable, str(TOOLS / "certify_controlled_native_corpus.py"),
+        "--manifest", str(artifact_root / "encoded_examples.jsonl"),
+        "--artifact-root", str(artifact_root), "--precodec-root", str(precodec_root),
+        "--certificate", str(certificate),
+    ])
+    return certificate
+
+
 @contextmanager
 def coordinator_lock(path: Path) -> Iterator[None]:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -265,25 +314,35 @@ def finalise(args: argparse.Namespace) -> int:
             "certifiedConversationCount": len(conversations), "namespace": namespace,
         })
         return 0
-    snapshot_root, audit = snapshot_corpus(dataset_root, sources, work_root, namespace)
+    reusable = reusable_prepared_attempt(work_root, namespace)
+    if reusable:
+        snapshot_root, output_root, audit = reusable
+    else:
+        snapshot_root, audit = snapshot_corpus(dataset_root, sources, work_root, namespace)
+        output_root = work_root / "prepared" / snapshot_root.name
     stop_synthesis()
-    output_root = work_root / "prepared" / snapshot_root.name
     contract = configured_path("PERSONAPLEX_MODEL_CONTRACT")
-    command = [
-        sys.executable, str(TOOLS / "run_controlled_native_pipeline.py"),
-        "--voryn-input", str(snapshot_root / "inputs"), "--output-root", str(output_root),
-        "--moshi-source-root", str(configured_path("PERSONAPLEX_MOSHI_SOURCE_ROOT")),
-        "--moshi-path", str(configured_path("PERSONAPLEX_MOSHI_PATH")),
-        "--mimi-path", str(configured_path("PERSONAPLEX_MIMI_PATH")),
-        "--tokenizer-path", str(configured_path("PERSONAPLEX_TOKENIZER_PATH")),
-        "--model-contract", str(contract), "--world-size", str(len(allowed_gpus())),
-        "--encode-device", env_text("PERSONAPLEX_ENCODE_DEVICE", f"cuda:{allowed_gpus()[0]}"),
-        "--prepare-only",
-    ]
-    for gpu in allowed_gpus():
-        command.extend(["--allow-gpu", str(gpu)])
-    run(command)
-    certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
+    source_root = configured_path("PERSONAPLEX_MOSHI_SOURCE_ROOT")
+    mimi_path = configured_path("PERSONAPLEX_MIMI_PATH")
+    tokenizer_path = configured_path("PERSONAPLEX_TOKENIZER_PATH")
+    encode_device = env_text("PERSONAPLEX_ENCODE_DEVICE", f"cuda:{allowed_gpus()[0]}")
+    if reusable:
+        certificate = encode_and_certify_precodec(
+            output_root, source_root, mimi_path, tokenizer_path, contract, encode_device
+        )
+    else:
+        command = [
+            sys.executable, str(TOOLS / "run_controlled_native_pipeline.py"),
+            "--voryn-input", str(snapshot_root / "inputs"), "--output-root", str(output_root),
+            "--moshi-source-root", str(source_root), "--moshi-path", str(configured_path("PERSONAPLEX_MOSHI_PATH")),
+            "--mimi-path", str(mimi_path), "--tokenizer-path", str(tokenizer_path),
+            "--model-contract", str(contract), "--world-size", str(len(allowed_gpus())),
+            "--encode-device", encode_device, "--prepare-only",
+        ]
+        for gpu in allowed_gpus():
+            command.extend(["--allow-gpu", str(gpu)])
+        run(command)
+        certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
     certificate_data = read_json(certificate)
     if certificate_data.get("status") != "certified_for_adapter_training":
         raise RuntimeError("native tensor certificate did not authorize adapter training")
@@ -294,7 +353,7 @@ def finalise(args: argparse.Namespace) -> int:
         "outputRoot": str(output_root), "exportRoot": str(output_root / "01_export"),
         "encodedManifest": str(output_root / "03_native_tensors" / "encoded_examples.jsonl"),
         "artifactRoot": str(output_root / "03_native_tensors"), "certificate": str(certificate),
-        "modelContract": str(contract), "moshiSourceRoot": str(configured_path("PERSONAPLEX_MOSHI_SOURCE_ROOT")),
+        "modelContract": str(contract), "moshiSourceRoot": str(source_root),
         "moshiPath": str(configured_path("PERSONAPLEX_MOSHI_PATH")),
         "tokenizerPath": str(configured_path("PERSONAPLEX_TOKENIZER_PATH")),
         "allowedGpus": allowed_gpus(),

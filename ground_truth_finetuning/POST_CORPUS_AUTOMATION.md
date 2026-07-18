@@ -38,6 +38,12 @@ own control state contains its target wording is quarantined by itself; valid
 causally independent target turns from the same duplex conversation remain
 available for agent-only supervision.
 
+If export and pre-codec preparation finish but tensor encoding fails before
+writing its artifact root, the next finalizer invocation resumes from that
+immutable pre-codec manifest. It never reuses a partial tensor directory. This
+prevents a recoverable source-contract or GPU-admission failure from needlessly
+re-rendering the corpus while keeping every native tensor attempt fail-closed.
+
 ## Host memory policy
 
 Install `systemd/user@.service.d/90-personaplex-resource-governor.conf` on a
