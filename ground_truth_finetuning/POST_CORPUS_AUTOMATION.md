@@ -66,10 +66,17 @@ attests the immutable certified-call count separately from the smaller set of
 target turns that pass label-leak and native-tensor admission.
 
 The default training memory floor is derived from the inspected Moshi model-file
-size multiplied by `PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO`. Each GPU also
-retains `PERSONAPLEX_TRAIN_GPU_RESERVE_RATIO` of its discovered total memory.
-The immutable admission report records the effective per-GPU reserve, so this
+size multiplied by `PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO` (default `1.50`,
+calibrated from measured native adapter residency). Each GPU also retains
+`PERSONAPLEX_TRAIN_GPU_RESERVE_RATIO` of its discovered total memory. The
+immutable admission report records the effective per-GPU reserve, so this
 policy scales without hard-coded server-memory assumptions.
+
+Semantic-prefix training sets `NO_TORCH_COMPILE=1` by default through
+`PERSONAPLEX_TRAIN_DISABLE_TORCH_COMPILE`. Moshi otherwise lazily creates a
+large Inductor worker pool on its first forward pass, which is unsuitable for a
+shared live-inference host. A launch records the effective choice; compilation
+may only be re-enabled after a measured, bounded benchmark on that host.
 
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both

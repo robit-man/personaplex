@@ -400,7 +400,10 @@ def train(args: argparse.Namespace) -> int:
     run_root = Path(state["outputRoot"]) / "06_training_execution" / f"attempt-{utc_now()}"
     moshi_path = Path(state["moshiPath"])
     model_gib = moshi_path.stat().st_size / (1024 ** 3)
-    model_headroom = env_float("PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO", 1.10)
+    # This is a model-runtime multiplier, not a host-specific memory constant.
+    # The conservative default reflects measured native Moshi adapter residency;
+    # installations can calibrate it through the environment contract.
+    model_headroom = env_float("PERSONAPLEX_TRAIN_MODEL_HEADROOM_RATIO", 1.50)
     dynamic_min_free_gib = model_gib * model_headroom
     command = [
         sys.executable, str(TOOLS / "launch_semantic_prefix.py"),

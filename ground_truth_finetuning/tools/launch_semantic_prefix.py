@@ -23,6 +23,13 @@ def write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
+def env_enabled(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
@@ -103,6 +110,7 @@ def main() -> int:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "command": command,
         "gpu_admission": report,
+        "torch_compile_disabled": env_enabled("PERSONAPLEX_TRAIN_DISABLE_TORCH_COMPILE", True),
         "execute": args.execute,
     }
     write_json(run_root / "launch.json", run_manifest)
@@ -111,6 +119,11 @@ def main() -> int:
         return 0
     environment = os.environ.copy()
     environment["CUDA_VISIBLE_DEVICES"] = ",".join(str(index) for index in report["selected_gpu_indices"])
+    # Moshi's lazy decorators can spawn an unbounded inductor worker pool on the
+    # first forward pass. Adapter training does not need graph compilation and
+    # must preserve CPU/RAM capacity for the live voice plane.
+    if env_enabled("PERSONAPLEX_TRAIN_DISABLE_TORCH_COMPILE", True):
+        environment["NO_TORCH_COMPILE"] = "1"
     existing_pythonpath = environment.get("PYTHONPATH", "")
     environment["PYTHONPATH"] = str(GTFT_TOOL_ROOT) + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
     return subprocess.run(command, env=environment, cwd=str(GTFT_TOOL_ROOT)).returncode
