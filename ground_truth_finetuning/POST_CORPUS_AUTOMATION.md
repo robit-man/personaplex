@@ -78,6 +78,10 @@ large Inductor worker pool on its first forward pass, which is unsuitable for a
 shared live-inference host. A launch records the effective choice; compilation
 may only be re-enabled after a measured, bounded benchmark on that host.
 
+`PERSONAPLEX_TRAIN_MAX_GPU_UTILIZATION_PCT` defaults to `85` for the shared
+host lane. It is a configurable compute-co-tenancy policy, while the model-size
+budget plus discovered VRAM reserve remains the hard admission condition.
+
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both
 paths publish only the staged, private, certified export.

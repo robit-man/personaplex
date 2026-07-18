@@ -418,7 +418,7 @@ def train(args: argparse.Namespace) -> int:
         "--eval-examples", str(env_int("PERSONAPLEX_TRAIN_EVAL_EXAMPLES", 256)),
         "--min-free-gib", str(env_float("PERSONAPLEX_TRAIN_MIN_FREE_GIB", dynamic_min_free_gib)),
         "--reserve-ratio", str(env_float("PERSONAPLEX_TRAIN_GPU_RESERVE_RATIO", 0.10)),
-        "--max-utilization-pct", str(env_int("PERSONAPLEX_TRAIN_MAX_GPU_UTILIZATION_PCT", 25)),
+        "--max-utilization-pct", str(env_int("PERSONAPLEX_TRAIN_MAX_GPU_UTILIZATION_PCT", 85)),
         "--execute",
     ]
     for gpu in state["allowedGpus"]:

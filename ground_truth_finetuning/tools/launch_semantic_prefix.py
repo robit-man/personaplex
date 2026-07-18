@@ -45,7 +45,7 @@ def main() -> int:
     parser.add_argument("--min-free-gib", type=float, default=44.0)
     parser.add_argument("--reserve-gib", type=float)
     parser.add_argument("--reserve-ratio", type=float, default=0.10)
-    parser.add_argument("--max-utilization-pct", type=int, default=25)
+    parser.add_argument("--max-utilization-pct", type=int, default=85)
     parser.add_argument("--allow-gpu", action="append", type=int, default=None)
     parser.add_argument("--max-steps", type=int, default=8)
     parser.add_argument("--checkpoint-every", type=int, default=100)
