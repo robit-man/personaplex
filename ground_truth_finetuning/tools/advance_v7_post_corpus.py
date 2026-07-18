@@ -94,12 +94,30 @@ def hardlink_or_copy(source: Path, destination: Path) -> None:
 
 
 def certified_sources(dataset_root: Path, namespace: str) -> list[Path]:
-    pattern = f"gpu*/datasets/synthesize/personaplex-v7-paired-v8cf-{namespace}-*.certified.jsonl"
+    default_pattern = f"personaplex-v7-paired-v8cf-{namespace}-*.certified.jsonl"
+    patterns = [
+        pattern.strip()
+        for pattern in env_text(
+            "PERSONAPLEX_CERTIFIED_ARTIFACT_PATTERNS", default_pattern
+        ).split(",")
+        if pattern.strip()
+    ]
+    if not patterns:
+        raise ValueError("PERSONAPLEX_CERTIFIED_ARTIFACT_PATTERNS cannot be empty")
+    for pattern in patterns:
+        candidate = Path(pattern)
+        if candidate.is_absolute() or "/" in pattern or ".." in candidate.parts:
+            raise ValueError(f"unsafe certified artifact pattern: {pattern!r}")
     # Certifier workers create their destination before writing it.  A zero-byte
     # destination is therefore an in-progress artifact, not a completed corpus
     # member.  Ignore only that explicit transient state; nonempty artifacts are
     # still parsed and fail closed on malformed or uncertified content.
-    return sorted(path for path in dataset_root.glob(pattern) if path.stat().st_size > 0)
+    return sorted({
+        path
+        for pattern in patterns
+        for path in dataset_root.glob(f"gpu*/datasets/synthesize/{pattern}")
+        if path.stat().st_size > 0
+    })
 
 
 def read_certified_source(path: Path) -> tuple[list[dict[str, Any]], set[str]]:
