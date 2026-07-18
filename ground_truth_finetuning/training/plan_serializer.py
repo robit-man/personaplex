@@ -25,7 +25,14 @@ def _atom(value: str) -> str:
 class PlanSerializer:
     """Serializes bounded fields in a stable order; never serializes target wording."""
 
-    version = 2
+    version = 3
+    _FRAME_SEGMENT_BUDGETS = (
+        ("header", 48),
+        ("plan", 176),
+        ("state", 104),
+        ("context", 152),
+        ("turn", 32),
+    )
 
     def render(self, plan: ControlPlan) -> str:
         fields: list[str] = [
@@ -90,12 +97,64 @@ class PlanSerializer:
         fields.append("<control-frame:end>")
         return " ".join(fields)
 
-    def encode_frame(self, frame: ControlTrainingFrame, tokenizer: TextTokenEncoder, text_cardinality: int, *, include_text_context: bool = True) -> list[int]:
-        tokens = [int(token) for token in tokenizer.encode(self.render_frame(frame, include_text_context=include_text_context))]
+    def _encode_text(self, value: str, tokenizer: TextTokenEncoder, text_cardinality: int) -> list[int]:
+        tokens = [int(token) for token in tokenizer.encode(value)]
         if not tokens:
             raise ContractError("control-frame tokenizer returned no tokens")
         if any(token < 0 or token >= text_cardinality for token in tokens):
             raise ContractError("control-frame tokenizer emitted a token outside the loaded model text vocabulary")
+        return tokens
+
+    def _budgeted_frame_segments(self, frame: ControlTrainingFrame, *, include_text_context: bool) -> dict[str, str]:
+        state = dict(frame.state)
+        text_context = state.pop("textContext", None)
+        end_call_authorized = bool(state.pop("endCallAuthorized", False))
+        header = [
+            f"<control-frame:v{self.version}>",
+            f"<state-revision:{frame.state_revision}>",
+            f"<apply-at:{_atom(str(frame.update['applyAt']))}>",
+            f"<update-reason:{_atom(str(frame.update.get('reason', 'unknown')))}>",
+            f"<end-call-authorized:{int(end_call_authorized)}>",
+        ]
+        header.extend(f"<source:{_atom(source)}>" for source in frame.semantic_sources)
+        state_fields = [f"<state:{_atom(path)}={_atom(value)}>" for path, value in self._flatten_state(state)]
+        turn_fields = [f"<state:{_atom(path)}={_atom(value)}>" for path, value in self._flatten_state(frame.turn_taking, prefix="turn")]
+        return {
+            "header": " ".join(header),
+            "plan": " ".join([self.render(frame.plan), "<control-frame:end>"]),
+            "state": " ".join(state_fields),
+            "context": " ".join(self._render_text_context(text_context, max_turns=2, max_text_chars=320)) if include_text_context else "",
+            "turn": " ".join(turn_fields),
+        }
+
+    def encode_frame(
+        self,
+        frame: ControlTrainingFrame,
+        tokenizer: TextTokenEncoder,
+        text_cardinality: int,
+        *,
+        include_text_context: bool = True,
+        max_tokens: int | None = None,
+    ) -> list[int]:
+        if max_tokens is None:
+            return self._encode_text(
+                self.render_frame(frame, include_text_context=include_text_context),
+                tokenizer,
+                text_cardinality,
+            )
+        if max_tokens < 1:
+            raise ContractError("control-frame max_tokens must be positive")
+        segments = self._budgeted_frame_segments(frame, include_text_context=include_text_context)
+        total_budget = sum(budget for _, budget in self._FRAME_SEGMENT_BUDGETS)
+        tokens: list[int] = []
+        for name, nominal_budget in self._FRAME_SEGMENT_BUDGETS:
+            remaining = max_tokens - len(tokens)
+            if remaining < 1:
+                break
+            budget = nominal_budget if max_tokens >= total_budget else max(1, round(nominal_budget * max_tokens / total_budget))
+            value = segments[name]
+            if value:
+                tokens.extend(self._encode_text(value, tokenizer, text_cardinality)[:min(budget, remaining)])
         return tokens
 
     def render_evidence(self, frame: EvidenceTrainingFrame, control: ControlTrainingFrame) -> str:
@@ -132,19 +191,19 @@ class PlanSerializer:
         return tokens
 
     @staticmethod
-    def _render_text_context(value: Any) -> list[str]:
+    def _render_text_context(value: Any, *, max_turns: int = 6, max_text_chars: int = 480) -> list[str]:
         if not isinstance(value, dict):
             return []
         turns = value.get("turns")
         if not isinstance(turns, list):
             return []
         fields = ["<audible-context:begin>"]
-        for item in turns[-6:]:
+        for item in turns[-max_turns:]:
             if not isinstance(item, dict):
                 continue
             speaker = _atom(str(item.get("speaker", "unknown")))
             source = _atom(str(item.get("source", "unknown")))
-            raw_text = str(item.get("text", ""))[:480]
+            raw_text = str(item.get("text", ""))[:max_text_chars]
             raw_text = re.sub(r"[<>\x00-\x1f]+", " ", raw_text).strip()
             if raw_text:
                 fields.extend([f"<audible-turn:{speaker}:{source}>", raw_text, "<audible-turn:end>"])

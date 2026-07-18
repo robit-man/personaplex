@@ -159,10 +159,10 @@ def target_training_issues(record: dict[str, Any]) -> list[str]:
         return issues
     if (record.get("replay") or {}).get("role") == "shared_prefix_context_only":
         return issues
-    if record.get("schema") == "voxrn.synthetic-conversation.v4" and not isinstance(
-        (record.get("control") or {}).get("evidence"), dict
-    ):
-        issues.append("v4_target_evidence_missing")
+    # V4 records retain counterfactual provenance even when a target has no
+    # late-evidence frame. Primary semantic-prefix training needs every
+    # certified target turn; the evidence-stream stage selects the smaller
+    # evidence-bearing subset separately.
     return sorted(set(issues))
 
 

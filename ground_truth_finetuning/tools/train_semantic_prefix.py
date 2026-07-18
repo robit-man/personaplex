@@ -116,7 +116,8 @@ def batch_for_record(
         tokenizer,
         text_cardinality,
         include_text_context=include_text_context,
-    )[:max_plan_tokens]
+        max_tokens=max_plan_tokens,
+    )
     if not token_ids:
         raise RuntimeError(f"{row.get('example_id')}: control frame encoded to no SentencePiece tokens")
     plan_ids = torch.tensor(token_ids, device=device, dtype=torch.long).unsqueeze(0)
@@ -152,6 +153,7 @@ def evaluate_checkpoint(
     context_ablated_losses: list[float] = []
     terminal_losses: list[float] = []
     context_examples = 0
+    context_effective_examples = 0
     try:
         for index, row in enumerate(selected):
             batch, frame = batch_for_record(
@@ -193,6 +195,10 @@ def evaluate_checkpoint(
                 ablated = trainer.evaluate(ablated_batch, audio_weight=audio_weight)
                 context_ablated_losses.append(float(ablated.total.detach().cpu()))
                 context_examples += 1
+                full_ids = batch["control_token_ids"]
+                ablated_ids = ablated_batch["control_token_ids"]
+                if full_ids.shape != ablated_ids.shape or not torch.equal(full_ids, ablated_ids):
+                    context_effective_examples += 1
             if frame.state.get("endCallAuthorized") is True:
                 terminal_losses.append(float(correct.total.detach().cpu()))
     finally:
@@ -212,11 +218,55 @@ def evaluate_checkpoint(
         "shuffled_control_loss": shuffled_loss,
         "plan_sensitivity_delta": (shuffled_loss - control_loss) if control_loss is not None and shuffled_loss is not None else None,
         "text_context_examples": context_examples,
+        "text_context_effective_examples": context_effective_examples,
         "text_context_ablated_loss": ablated_loss,
         "text_context_delta": (ablated_loss - control_loss) if control_loss is not None and ablated_loss is not None else None,
         "terminal_examples": len(terminal_losses),
         "terminal_control_loss": mean(terminal_losses),
         "metric_scope": "teacher_forced_native_agent_loss; expressive wording remains separately evaluated by the runtime control harness",
+    }
+
+
+def validate_heldout_control_coverage(
+    records: list[dict[str, Any]],
+    *,
+    serializer: PlanSerializer,
+    tokenizer: Any,
+    text_cardinality: int,
+    max_plan_tokens: int,
+) -> dict[str, int]:
+    context_examples = 0
+    context_effective_examples = 0
+    terminal_examples = 0
+    for row in records:
+        frame_value = row.get("control", {}).get("frame")
+        if not isinstance(frame_value, dict):
+            raise RuntimeError(f"{row.get('example_id')}: missing control.frame")
+        frame = validate_control_frame_mapping(frame_value)
+        if frame.state.get("endCallAuthorized") is True:
+            terminal_examples += 1
+        text_context = frame.state.get("textContext") if isinstance(frame.state, dict) else None
+        if not isinstance(text_context, dict) or not text_context.get("turns"):
+            continue
+        context_examples += 1
+        full = serializer.encode_frame(frame, tokenizer, text_cardinality, max_tokens=max_plan_tokens)
+        ablated = serializer.encode_frame(
+            frame,
+            tokenizer,
+            text_cardinality,
+            include_text_context=False,
+            max_tokens=max_plan_tokens,
+        )
+        if full != ablated:
+            context_effective_examples += 1
+    if context_examples and context_effective_examples != context_examples:
+        raise RuntimeError("held-out text context is not fully represented within the control-token budget")
+    if terminal_examples < 1:
+        raise RuntimeError("held-out control corpus has no model-selected terminal target turns")
+    return {
+        "text_context_examples": context_examples,
+        "text_context_effective_examples": context_effective_examples,
+        "terminal_examples": terminal_examples,
     }
 
 
@@ -320,6 +370,13 @@ def main() -> int:
     if world_size > 1:
         dist.barrier()
     serializer = PlanSerializer()
+    heldout_control_coverage = validate_heldout_control_coverage(
+        heldout_records,
+        serializer=serializer,
+        tokenizer=tokenizer,
+        text_cardinality=int(lm.text_card),
+        max_plan_tokens=args.max_plan_tokens,
+    )
     metrics_path = args.run_dir / "metrics.jsonl"
     module = adapter.module if isinstance(adapter, DistributedDataParallel) else adapter
     evaluation_trainer = SemanticPrefixTrainer(lm, module, optimizer, layout, activation_checkpointing=False)

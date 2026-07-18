@@ -95,6 +95,15 @@ run-contract stages in the attempt root. This avoids redundant multi-rank disk
 hashing and makes a silent pre-artifact startup diagnosable without changing the
 model or relaxing its provenance check.
 
+Primary semantic-prefix preparation admits every quality-accepted, semantically
+certified target turn, including V4 turns without a delayed-evidence frame.
+V4 counterfactual provenance does not imply that every target has late evidence;
+the separate evidence-stream stage selects the evidence-bearing subset. The
+control serializer reserves its bounded input for the terminal flag, typed plan,
+mutable state, recent audible context, and turn-taking. Training refuses a
+held-out split unless that encoded context is effective and at least one genuine
+model-selected terminal target is present.
+
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both
 paths publish only the staged, private, certified export.

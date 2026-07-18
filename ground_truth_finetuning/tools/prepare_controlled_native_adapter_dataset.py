@@ -143,8 +143,6 @@ def prepare(example: dict[str, Any], export_root: Path, output_root: Path) -> tu
             raise ValueError(f"{example.get('exampleId')}: evidence frame must be an object")
         evidence = validate_evidence_frame_mapping(evidence_value)
         assert_evidence_control_alignment(frame, evidence)
-    elif isinstance(example.get("counterfactual"), dict):
-        raise ValueError(f"{example.get('exampleId')}: V4 counterfactual example lacks evidence")
     label = str((example.get("labels") or {}).get("agentText") or "")
     serialised_frame = canonical_json(frame.as_wire_dict())
     if len(normalise(label)) >= 16 and normalise(label) in normalise(serialised_frame):
