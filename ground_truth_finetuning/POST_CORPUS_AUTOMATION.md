@@ -82,6 +82,13 @@ may only be re-enabled after a measured, bounded benchmark on that host.
 host lane. It is a configurable compute-co-tenancy policy, while the model-size
 budget plus discovered VRAM reserve remains the hard admission condition.
 
+Before the frozen model is loaded, rank zero alone SHA-256 verifies the native
+weights against the model contract and broadcasts that result to the other
+ranks. `startup.jsonl` records the preflight, model-load, adapter-init, and
+run-contract stages in the attempt root. This avoids redundant multi-rank disk
+hashing and makes a silent pre-artifact startup diagnosable without changing the
+model or relaxing its provenance check.
+
 Publication uses `HfApi.upload_large_folder` when available and falls back to
 the compatible `upload_folder` API for older pinned Hugging Face clients. Both
 paths publish only the staged, private, certified export.

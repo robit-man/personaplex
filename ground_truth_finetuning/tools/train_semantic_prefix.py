@@ -58,6 +58,19 @@ def rank_info() -> tuple[int, int, int]:
     return rank, local_rank, world_size
 
 
+def write_startup_stage(run_root: Path, *, rank: int, stage: str) -> None:
+    """Persist rank-zero startup progress before the training directory exists."""
+    if rank != 0:
+        return
+    record = {
+        "at": datetime.now(timezone.utc).isoformat(),
+        "kind": "personaplex-semantic-prefix-startup",
+        "stage": stage,
+    }
+    with (run_root / "startup.jsonl").open("a") as handle:
+        handle.write(json.dumps(record, sort_keys=True) + "\n")
+
+
 def require_certificate(certificate_path: Path, manifest: Path, contract: dict[str, Any]) -> None:
     certificate = json.loads(certificate_path.read_text())
     if certificate.get("kind") != "personaplex-corpus-certificate":
@@ -241,7 +254,13 @@ def main() -> int:
     require_moshi_source_contract(args.moshi_source_root.resolve(), contract)
     layout = StreamLayout.from_mapping(contract["stream_layout"])
     expected_weights_hash = contract.get("moshi_weights_sha256")
-    if expected_weights_hash != hash_file(args.moshi_path.resolve()):
+    write_startup_stage(args.run_dir.parent, rank=rank, stage="hashing_frozen_moshi_weights")
+    actual_weights_hash = hash_file(args.moshi_path.resolve()) if rank == 0 else None
+    if world_size > 1:
+        shared_hash = [actual_weights_hash]
+        dist.broadcast_object_list(shared_hash, src=0)
+        actual_weights_hash = shared_hash[0]
+    if expected_weights_hash != actual_weights_hash:
         raise SystemExit("LM weights do not match the inspected native model contract")
     if contract.get("tokenizer_sha256") != hash_file(args.tokenizer_path.resolve()):
         raise SystemExit("SentencePiece tokenizer does not match the inspected native model contract")
@@ -249,9 +268,11 @@ def main() -> int:
     import sentencepiece
     from moshi.models.loaders import get_moshi_lm
 
+    write_startup_stage(args.run_dir.parent, rank=rank, stage="loading_frozen_moshi")
     lm = get_moshi_lm(args.moshi_path.resolve(), device=device, dtype=torch.bfloat16)
     layout.validate_for_model(lm)
     tokenizer = sentencepiece.SentencePieceProcessor(model_file=str(args.tokenizer_path.resolve()))
+    write_startup_stage(args.run_dir.parent, rank=rank, stage="initializing_semantic_prefix")
     adapter = SemanticPrefixAdapter(
         text_cardinality=int(lm.text_card),
         hidden_size=int(lm.dim),
@@ -271,6 +292,7 @@ def main() -> int:
     if not local_records:
         raise SystemExit(f"rank {rank} received no training examples")
     if rank == 0:
+        write_startup_stage(args.run_dir.parent, rank=rank, stage="writing_run_contract")
         args.run_dir.mkdir(parents=True, exist_ok=False)
         (args.run_dir / "run_contract.json").write_text(
             json.dumps(
@@ -288,6 +310,7 @@ def main() -> int:
                     "checkpoint_every": args.checkpoint_every,
                     "eval_examples": args.eval_examples,
                     "caller_stream_supervision": "forbidden",
+                    "model_integrity_verification": "rank_zero_sha256_broadcast",
                 },
                 indent=2,
                 sort_keys=True,
