@@ -80,7 +80,7 @@ def main() -> int:
         print(json.dumps({"status": "refused", "reason": report.get("refusal")}))
         return 2
     command = [
-        "torchrun", "--standalone", "--nproc-per-node", str(effective_world_size), "-m",
+        sys.executable, "-m", "torch.distributed.run", "--standalone", "--nproc-per-node", str(effective_world_size), "-m",
         "ground_truth_finetuning.tools.train_semantic_prefix",
         "--manifest", str(args.manifest.resolve()),
         "--artifact-root", str(args.artifact_root.resolve()),
@@ -108,7 +108,9 @@ def main() -> int:
         return 0
     environment = os.environ.copy()
     environment["CUDA_VISIBLE_DEVICES"] = ",".join(str(index) for index in report["selected_gpu_indices"])
-    return subprocess.run(command, env=environment).returncode
+    existing_pythonpath = environment.get("PYTHONPATH", "")
+    environment["PYTHONPATH"] = str(GTFT_TOOL_ROOT) + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
+    return subprocess.run(command, env=environment, cwd=str(GTFT_TOOL_ROOT)).returncode
 
 
 if __name__ == "__main__":
