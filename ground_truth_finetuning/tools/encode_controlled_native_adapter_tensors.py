@@ -45,7 +45,7 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def build_main_text_tokens_and_mask(
-    *, tokenizer: Any, alignments: list[Any], duration_seconds: float, frame_rate: float,
+    *, tokenizer: Any, alignments: list[Any], frames: int, frame_rate: float,
     text_padding: int, end_of_text_padding: int, zero_padding: int, device: str,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     tokenized = []
@@ -64,7 +64,8 @@ def build_main_text_tokens_and_mask(
         tokenized.append((tokens, (float(start), float(end))))
     if not tokenized:
         raise ValueError("no target word alignments")
-    frames = math.ceil(duration_seconds * frame_rate)
+    if frames < 1:
+        raise ValueError("native codec emitted no frames")
     text_tokens = [text_padding] * frames
     target_mask = [False] * frames
     index = 0
@@ -160,7 +161,7 @@ def main() -> int:
         frames = int(audio_tokens.shape[-1])
         duration = frames / float(mimi.frame_rate)
         text_tokens, text_mask = build_main_text_tokens_and_mask(
-            tokenizer=tokenizer, alignments=alignments, duration_seconds=duration,
+            tokenizer=tokenizer, alignments=alignments, frames=frames,
             frame_rate=float(mimi.frame_rate), text_padding=int(contract["text_padding_token_id"]),
             end_of_text_padding=int(contract["end_of_text_padding_id"]), zero_padding=int(contract["zero_token_id"]),
             device=args.device,

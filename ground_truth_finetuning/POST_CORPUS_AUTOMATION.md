@@ -49,6 +49,9 @@ writing its artifact root, the next finalizer invocation resumes from that
 immutable pre-codec manifest. It never reuses a partial tensor directory. This
 prevents a recoverable source-contract or GPU-admission failure from needlessly
 re-rendering the corpus while keeping every native tensor attempt fail-closed.
+Partial tensor roots are atomically moved aside with an `incomplete-` suffix
+before a clean re-encode; they remain available for incident analysis but can
+never be mistaken for certified training input.
 
 ## Host memory policy
 

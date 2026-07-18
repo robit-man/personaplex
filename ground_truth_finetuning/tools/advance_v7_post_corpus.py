@@ -249,9 +249,10 @@ def reusable_prepared_attempt(work_root: Path, namespace: str) -> tuple[Path, Pa
         audit_path = snapshot_root / "corpus_audit.json"
         precodec_manifest = output_root / "02_precodec" / "precodec_manifest.jsonl"
         tensor_root = output_root / "03_native_tensors"
+        certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
         if not audit_path.is_file() or not precodec_manifest.is_file() or precodec_manifest.stat().st_size == 0:
             continue
-        if tensor_root.exists():
+        if certificate.is_file():
             continue
         audit = read_json(audit_path)
         if audit.get("namespace") != namespace or not isinstance(audit.get("certifiedConversationCount"), int):
@@ -264,6 +265,11 @@ def encode_and_certify_precodec(output_root: Path, source_root: Path, mimi_path:
     precodec_root = output_root / "02_precodec"
     artifact_root = output_root / "03_native_tensors"
     certificate = output_root / "04_certificate" / "controlled_native_certificate.json"
+    if artifact_root.exists():
+        quarantined = output_root / f"03_native_tensors.incomplete-{utc_now()}"
+        if quarantined.exists():
+            raise RuntimeError(f"partial tensor quarantine collision: {quarantined}")
+        artifact_root.replace(quarantined)
     run([
         sys.executable, str(TOOLS / "encode_controlled_native_adapter_tensors.py"),
         "--manifest", str(precodec_root / "precodec_manifest.jsonl"),
