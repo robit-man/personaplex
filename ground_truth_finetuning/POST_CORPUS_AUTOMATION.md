@@ -59,6 +59,12 @@ quality record and an explicit WER threshold; an over-threshold sample remains
 admissible only when its recorded marginal-ASR adjudicator explicitly accepted
 it. This preserves the upstream quality policy instead of silently widening it.
 
+Training requests the configured GPU allowlist but can degrade to the number of
+currently admitted GPUs, never below `PERSONAPLEX_TRAIN_MIN_WORLD_SIZE`. The
+admission report records both requested and effective world size. Publication
+attests the immutable certified-call count separately from the smaller set of
+target turns that pass label-leak and native-tensor admission.
+
 ## Host memory policy
 
 Install `systemd/user@.service.d/90-personaplex-resource-governor.conf` on a

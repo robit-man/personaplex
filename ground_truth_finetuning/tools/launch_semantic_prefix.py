@@ -34,6 +34,7 @@ def main() -> int:
     parser.add_argument("--tokenizer-path", type=Path, required=True)
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--world-size", type=int, default=1)
+    parser.add_argument("--min-world-size", type=int, default=1)
     parser.add_argument("--min-free-gib", type=float, default=44.0)
     parser.add_argument("--reserve-gib", type=float, default=8.0)
     parser.add_argument("--max-utilization-pct", type=int, default=25)
@@ -43,8 +44,10 @@ def main() -> int:
     parser.add_argument("--eval-examples", type=int, default=32)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
-    if args.max_steps < 1 or args.checkpoint_every < 1 or args.eval_examples < 1:
-        raise SystemExit("max-steps, checkpoint-every, and eval-examples must be positive")
+    if args.max_steps < 1 or args.checkpoint_every < 1 or args.eval_examples < 1 or args.world_size < 1:
+        raise SystemExit("world-size, max-steps, checkpoint-every, and eval-examples must be positive")
+    if not 1 <= args.min_world_size <= args.world_size:
+        raise SystemExit("min-world-size must be between one and world-size")
     run_root = args.run_root.resolve()
     if run_root.exists():
         raise SystemExit(f"refusing existing run root: {run_root}")
@@ -59,13 +62,25 @@ def main() -> int:
         max_utilization_pct=args.max_utilization_pct,
         allowed_indices=args.allow_gpu,
     )
+    effective_world_size = args.world_size
+    if report["status"] != "admitted" and len(report["selected_gpu_indices"]) >= args.min_world_size:
+        effective_world_size = len(report["selected_gpu_indices"])
+        report = admit_gpus(
+            world_size=effective_world_size,
+            min_free_gib=args.min_free_gib,
+            reserve_gib=args.reserve_gib,
+            max_utilization_pct=args.max_utilization_pct,
+            allowed_indices=args.allow_gpu,
+        )
+        report["degraded_from_world_size"] = args.world_size
+    report["effective_world_size"] = effective_world_size
     run_root.mkdir(parents=True)
     write_json(run_root / "gpu_admission.json", report)
     if report["status"] != "admitted":
         print(json.dumps({"status": "refused", "reason": report.get("refusal")}))
         return 2
     command = [
-        "torchrun", "--standalone", "--nproc-per-node", str(args.world_size), "-m",
+        "torchrun", "--standalone", "--nproc-per-node", str(effective_world_size), "-m",
         "ground_truth_finetuning.tools.train_semantic_prefix",
         "--manifest", str(args.manifest.resolve()),
         "--artifact-root", str(args.artifact_root.resolve()),

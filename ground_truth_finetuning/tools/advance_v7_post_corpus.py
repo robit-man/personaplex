@@ -405,6 +405,7 @@ def train(args: argparse.Namespace) -> int:
         "--moshi-source-root", state["moshiSourceRoot"], "--moshi-path", state["moshiPath"],
         "--tokenizer-path", state["tokenizerPath"], "--run-root", str(run_root),
         "--world-size", str(len(state["allowedGpus"])),
+        "--min-world-size", str(min(len(state["allowedGpus"]), env_int("PERSONAPLEX_TRAIN_MIN_WORLD_SIZE", 1))),
         "--max-steps", str(env_int("PERSONAPLEX_TRAIN_MAX_STEPS", 12000)),
         "--checkpoint-every", str(env_int("PERSONAPLEX_TRAIN_CHECKPOINT_EVERY", 500)),
         "--eval-examples", str(env_int("PERSONAPLEX_TRAIN_EVAL_EXAMPLES", 256)),

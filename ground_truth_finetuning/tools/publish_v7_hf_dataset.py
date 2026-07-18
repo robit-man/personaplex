@@ -63,11 +63,18 @@ def main() -> int:
         raise SystemExit("publication requires a prepared native tensor certificate")
     export_root = Path(state["exportRoot"]).resolve()
     export_manifest = read_json(export_root / "manifest.json")
-    if int(export_manifest.get("admittedConversationCount", 0)) < int(state["targetConversations"]):
-        raise SystemExit("export did not retain the required number of admitted conversations")
+    audit = state.get("audit") or {}
+    if int(audit.get("certifiedConversationCount", 0)) < int(state["targetConversations"]):
+        raise SystemExit("immutable source audit does not contain the required certified conversation count")
+    certificate = read_json(Path(state["certificate"]).resolve())
+    admitted_examples = int(export_manifest.get("admittedExampleCount", 0))
+    if certificate.get("status") != "certified_for_adapter_training" or admitted_examples < 1:
+        raise SystemExit("native training certificate or admitted export examples are missing")
+    if int(certificate.get("items", 0)) != admitted_examples:
+        raise SystemExit("native certificate item count differs from the exported training examples")
     publish_root = Path(state["outputRoot"]).resolve() / "07_huggingface_dataset"
     publish_root.mkdir(parents=True, exist_ok=True)
-    for name in ("manifest.json", "examples.jsonl"):
+    for name in ("manifest.json", "examples.jsonl", "rejections.jsonl"):
         source = export_root / name
         destination = publish_root / name
         if destination.exists() and sha256_file(source) != sha256_file(destination):
@@ -85,7 +92,10 @@ def main() -> int:
         "---\n\n"
         "# PersonaPlex V7 semantic-control synthetic corpus\n\n"
         "Private, provenance-tracked synthetic duplex conversations for training a "
-        "semantic-prefix adapter. Each example contains aligned duplex audio and a "
+        "semantic-prefix adapter. The immutable source audit contains "
+        f"{audit['certifiedConversationCount']} certified conversations; "
+        f"{admitted_examples} target turns survived strict target-label and native "
+        "tensor admission. Each published training example contains aligned duplex audio and a "
         "typed control frame available before the agent response. The control frame "
         "does not contain target wording. Audio, timing, ASR, provenance, control "
         "adherence, counterfactual branch, and native export checks were required "
@@ -100,6 +110,8 @@ def main() -> int:
     publication = {
         "schema": "personaplex.huggingface-publication.v1", "publishedAt": datetime.now(timezone.utc).isoformat(),
         "repoId": repo_id, "private": private, "sourceExport": str(export_root),
+        "certifiedSourceConversationCount": audit["certifiedConversationCount"],
+        "publishedTrainingExampleCount": admitted_examples,
     }
     write_json(Path(state["outputRoot"]) / "huggingface_publication.json", publication)
     return 0
