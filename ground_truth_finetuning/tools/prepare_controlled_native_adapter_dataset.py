@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Prepare certified controlled-duplex exports for native PersonaPlex encoding.
 
-The resulting manifest contains no target wording. Target text is represented
-only by cropped, timestamped word labels in an adjacent audio sidecar. The
-sidecar covers the audible portion of the current agent turn only, so an
-interrupted generated suffix cannot enter text or audio supervision.
+The manifest and control inputs contain no target wording. Target text remains
+only in label-side artifacts: cropped word timing and ``control_labels.jsonl``.
+The audible crop prevents an interrupted generated suffix from entering text or
+audio supervision, while immutable post-render plan identity follows the example.
 """
 
 from __future__ import annotations
@@ -49,6 +49,18 @@ def sha256_file(path: Path) -> str:
 
 def sha256_text(value: str) -> str:
     return "sha256:" + sha256(value.encode("utf-8")).hexdigest()
+
+
+def optional_plan_record_id(example: dict[str, Any]) -> str | None:
+    provenance = example.get("provenance") or {}
+    value = provenance.get("planRecordId")
+    if value is None:
+        if provenance.get("branchArtifactSchema") == "personaplex.voryn-branch-artifact.v5":
+            raise ValueError(f"{example.get('exampleId')}: v5 branch artifact lacks planRecordId")
+        return None
+    if not isinstance(value, str) or not re.fullmatch(r"sha256:[a-f0-9]{64}", value):
+        raise ValueError(f"{example.get('exampleId')}: malformed planRecordId")
+    return value
 
 
 def hardlink_or_copy(source: Path, destination: Path) -> None:
@@ -171,8 +183,12 @@ def prepare(example: dict[str, Any], export_root: Path, output_root: Path) -> tu
     alignments = word_alignments(example)
     pair = (example.get("provenance") or {}).get("voicePair")
     split = split_for_pair(pair, example.get("counterfactual"))
+    plan_record_id = optional_plan_record_id(example)
+    stable_material = f"{example.get('exampleId')}|{example.get('controlFrameHash')}"
+    if plan_record_id is not None:
+        stable_material += f"|{plan_record_id}"
     stable_id = "sha256:" + sha256(
-        f"{example.get('exampleId')}|{example.get('controlFrameHash')}".encode("utf-8")
+        stable_material.encode("utf-8")
     ).hexdigest()
     stem = stable_id.removeprefix("sha256:")
     audio_rel = Path("audio") / f"{stem}.wav"
@@ -191,6 +207,7 @@ def prepare(example: dict[str, Any], export_root: Path, output_root: Path) -> tu
             "agent_rendered_end_seconds": round(target["renderedEndMs"] / 1000.0, 6),
             "target_label_sha256": sha256_text(label),
             "control_frame_hash": example.get("controlFrameHash"),
+            "plan_record_id": plan_record_id,
         },
     }
     info_rel = Path("audio") / f"{stem}.json"
@@ -223,6 +240,7 @@ def prepare(example: dict[str, Any], export_root: Path, output_root: Path) -> tu
             "source_export_root": str(export_root),
             "voice_pair": pair,
             "scenario_key": (example.get("provenance") or {}).get("scenarioKey"),
+            **({"plan_record_id": plan_record_id} if plan_record_id is not None else {}),
         },
     }
     control_label = {
@@ -231,6 +249,8 @@ def prepare(example: dict[str, Any], export_root: Path, output_root: Path) -> tu
         "control_frame_hash": example.get("controlFrameHash"),
         "evidence_frame": evidence.as_wire_dict() if evidence is not None else None,
         "evidence_frame_hash": example.get("evidenceFrameHash") if evidence is not None else None,
+        "plan_record_id": plan_record_id,
+        "target_transcript": label,
         "target_label_sha256": sha256_text(label),
     }
     return manifest_row, control_label

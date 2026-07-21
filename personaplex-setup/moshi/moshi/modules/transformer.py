@@ -695,7 +695,18 @@ class StreamingTransformer(StreamingModule[_TransformerState]):
         device = next(self.parameters()).device
         return _TransformerState(offset=torch.zeros(1, device=device, dtype=torch.long))
 
-    def forward(self, x: torch.Tensor, *args, **kwargs):
+    def forward(
+        self,
+        x: torch.Tensor,
+        *args,
+        layerwise_sum: torch.Tensor | None = None,
+        layer_indices: tuple[int, ...] = (),
+        layer_adapter_down: torch.Tensor | None = None,
+        layer_adapter_up: torch.Tensor | None = None,
+        layer_adapter_gates: torch.Tensor | None = None,
+        max_layer_adaptation_rms: float | None = None,
+        **kwargs,
+    ):
         B, T, C = x.shape
 
         state = self._streaming_state
@@ -712,8 +723,73 @@ class StreamingTransformer(StreamingModule[_TransformerState]):
             )
             x = x + self.positional_scale * pos_emb
 
-        for layer in self.layers:
+        slots_by_layer: dict[int, int] = {}
+        if layerwise_sum is not None:
+            if (
+                layerwise_sum.ndim != 4
+                or layerwise_sum.shape[0] != B
+                or layerwise_sum.shape[2:] != (T, C)
+                or layerwise_sum.shape[1] != len(layer_indices)
+            ):
+                raise ValueError(
+                    "layerwise_sum must be [batch, selected_layers, frames, hidden]"
+                )
+            if tuple(sorted(set(layer_indices))) != layer_indices:
+                raise ValueError("layer_indices must be unique and increasing")
+            if layer_indices and (layer_indices[0] < 0 or layer_indices[-1] >= len(self.layers)):
+                raise ValueError("layer_indices fall outside the transformer")
+            slots_by_layer = {layer_index: slot for slot, layer_index in enumerate(layer_indices)}
+
+        adapter_values = (layer_adapter_down, layer_adapter_up, layer_adapter_gates)
+        has_layer_adapter = any(value is not None for value in adapter_values)
+        if has_layer_adapter:
+            if not all(value is not None for value in adapter_values):
+                raise ValueError("layer adaptation requires down, up, and gate tensors")
+            if max_layer_adaptation_rms is None or not 0 < max_layer_adaptation_rms <= 1:
+                raise ValueError("layer adaptation requires max RMS in (0, 1]")
+            if (
+                layer_adapter_down.ndim != 3
+                or layer_adapter_up.ndim != 3
+                or layer_adapter_gates.ndim != 1
+                or layer_adapter_down.shape[0] != len(layer_indices)
+                or layer_adapter_up.shape[0] != len(layer_indices)
+                or layer_adapter_gates.shape[0] != len(layer_indices)
+                or layer_adapter_down.shape[2] != C
+                or layer_adapter_up.shape[1] != C
+                or layer_adapter_down.shape[1] != layer_adapter_up.shape[2]
+            ):
+                raise ValueError("invalid selected-layer adaptation tensor contract")
+
+        for layer_index, layer in enumerate(self.layers):
+            control_slot = slots_by_layer.get(layer_index)
+            if control_slot is not None:
+                x = x + layerwise_sum[:, control_slot].to(device=x.device, dtype=x.dtype)
             x = layer(x, *args, **kwargs)
+            if has_layer_adapter and control_slot is not None:
+                normalized = x * torch.rsqrt(
+                    x.float().square().mean(dim=-1, keepdim=True).add(1e-5)
+                ).to(x.dtype)
+                compressed = F.silu(
+                    F.linear(
+                        normalized,
+                        layer_adapter_down[control_slot].to(dtype=x.dtype),
+                    )
+                )
+                update = F.linear(
+                    compressed,
+                    layer_adapter_up[control_slot].to(dtype=x.dtype),
+                )
+                update = torch.sigmoid(layer_adapter_gates[control_slot]).to(x.dtype) * update
+                update_rms = update.float().square().mean(dim=-1, keepdim=True).add(1e-12).sqrt()
+                update_scale = torch.minimum(
+                    torch.ones_like(update_rms),
+                    torch.as_tensor(
+                        max_layer_adaptation_rms,
+                        device=update.device,
+                        dtype=update_rms.dtype,
+                    ) / update_rms,
+                ).to(update.dtype)
+                x = x + update * update_scale
 
         if state is not None:
             state.offset.add_(T)

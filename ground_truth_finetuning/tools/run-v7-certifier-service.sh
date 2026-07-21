@@ -6,6 +6,7 @@ readonly RUNTIME_ENV="/srv/voxrn_cache/personaplex-systemd/personaplex-runtime.e
 lane="${1:?lane index is required}"
 [[ -r "$RUNTIME_ENV" ]] || { printf 'PersonaPlex runtime contract missing: %s\n' "$RUNTIME_ENV" >&2; exit 78; }
 source "$RUNTIME_ENV"
+readonly verifier_model="${PERSONAPLEX_TAXONOMY_VERIFIER_MODEL:?}"
 
 case "$lane" in
   0) resource_root="/srv/voxrn_cache/personaplex-lanes/gpu0"; semantic_port="${PERSONAPLEX_CHATML_LANE0_PORT:?}" ;;
@@ -21,7 +22,7 @@ cd "$VORYN_ROOT"
 set -a
 source ./.env
 set +a
-printf '{"event":"personaplex_runtime_bound","lane":%s,"runtimeVersion":"%s","semantic":"%s","model":"%s"}\n' "$lane" "$PERSONAPLEX_RUNTIME_VERSION" "$semantic_base_url" "$PERSONAPLEX_CONTROL_MODEL"
+printf '{"event":"personaplex_runtime_bound","lane":%s,"runtimeVersion":"%s","semantic":"%s","model":"%s"}\n' "$lane" "$PERSONAPLEX_RUNTIME_VERSION" "$semantic_base_url" "$verifier_model"
 
 while :; do
   if ! curl -fsS --max-time 3 "${semantic_base_url}/health" >/dev/null; then
@@ -34,9 +35,9 @@ while :; do
     SYNTHESIS_LANE_COUNT=3 \
     SYNTHESIS_PROGRESS_NAMESPACE=v11-repairable-v8 \
     SYNTHESIZE_CERTIFIER_ENDPOINT="$semantic_endpoint" \
-    SYNTHESIZE_CERTIFIER_MODEL="$PERSONAPLEX_CONTROL_MODEL" \
+    SYNTHESIZE_CERTIFIER_MODEL="$verifier_model" \
     SYNTHESIZE_CERTIFIER_REPAIR_ENDPOINT="$semantic_endpoint" \
-    SYNTHESIZE_CERTIFIER_REPAIR_MODEL="$PERSONAPLEX_CONTROL_MODEL" \
+    SYNTHESIZE_CERTIFIER_REPAIR_MODEL="$verifier_model" \
     node scripts/certify-personaplex-v7-paired-queue.js --lane="$lane" --namespace=v11-repairable-v8 --max=1; then
     printf 'lane=%s certificate pass failed; retaining raw artifacts for retry\n' "$lane" >&2
   fi

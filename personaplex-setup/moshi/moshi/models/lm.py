@@ -119,7 +119,7 @@ def normalize_audio(wav: np.ndarray, sr: int, target_lufs: float) -> np.ndarray:
 
 
 def load_audio(
-    filepath: str, sample_rate: int, 
+    filepath: str, sample_rate: int,
 ):
     """Yields audio samples in intervals of sample_interval_size"""
     sample_pcm, sample_sr = sphn.read(filepath)
@@ -165,7 +165,7 @@ def encode_from_sphn(mimi, samples, max_batch=sys.maxsize):
         try:
             sample = next(samples)
             tensor = torch.tensor(sample, dtype=torch.float32, device=device)
-            tensor = tensor.unsqueeze(0)  # shape: (1, C, T)                                                                                                      
+            tensor = tensor.unsqueeze(0)  # shape: (1, C, T)
             current_batch.append(tensor)
         except StopIteration:
             done_flag = True
@@ -421,7 +421,7 @@ class LMModel(StreamingContainer):
         audio_token = audio_token.expand(-1, self.num_audio_codebooks, -1)
         token = torch.cat([text_token, audio_token], dim=1)
         return token
-    
+
     def embed_codes(self, sequence: torch.Tensor) -> torch.Tensor:
         B, K, S = sequence.shape
         assert (
@@ -442,18 +442,49 @@ class LMModel(StreamingContainer):
         self,
         sequence: torch.Tensor,
         streaming_sum: torch.Tensor | None = None,
+        layerwise_sum: torch.Tensor | None = None,
+        layer_indices: tuple[int, ...] = (),
+        layer_adapter_down: torch.Tensor | None = None,
+        layer_adapter_up: torch.Tensor | None = None,
+        layer_adapter_gates: torch.Tensor | None = None,
+        max_layer_adaptation_rms: float | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        return self.forward_embeddings(self.embed_codes(sequence), streaming_sum=streaming_sum)
-    
+        return self.forward_embeddings(
+            self.embed_codes(sequence),
+            streaming_sum=streaming_sum,
+            layerwise_sum=layerwise_sum,
+            layer_indices=layer_indices,
+            layer_adapter_down=layer_adapter_down,
+            layer_adapter_up=layer_adapter_up,
+            layer_adapter_gates=layer_adapter_gates,
+            max_layer_adaptation_rms=max_layer_adaptation_rms,
+        )
+
     def forward_embeddings(
-        self, input: torch.Tensor, streaming_sum: torch.Tensor | None = None
+        self,
+        input: torch.Tensor,
+        streaming_sum: torch.Tensor | None = None,
+        layerwise_sum: torch.Tensor | None = None,
+        layer_indices: tuple[int, ...] = (),
+        layer_adapter_down: torch.Tensor | None = None,
+        layer_adapter_up: torch.Tensor | None = None,
+        layer_adapter_gates: torch.Tensor | None = None,
+        max_layer_adaptation_rms: float | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         if streaming_sum is not None:
             if streaming_sum.shape != input.shape:
                 raise ValueError("streaming_sum must match input embeddings [batch, frames, hidden]")
             input = input + streaming_sum.to(device=input.device, dtype=input.dtype)
         # print("EMBED:", input[0, 0, :10].float().cpu().tolist()) # DEBUG
-        transformer_out = self.transformer(input)
+        transformer_out = self.transformer(
+            input,
+            layerwise_sum=layerwise_sum,
+            layer_indices=layer_indices,
+            layer_adapter_down=layer_adapter_down,
+            layer_adapter_up=layer_adapter_up,
+            layer_adapter_gates=layer_adapter_gates,
+            max_layer_adaptation_rms=max_layer_adaptation_rms,
+        )
         if self.out_norm:
             transformer_out = self.out_norm(transformer_out)
         assert isinstance(transformer_out, torch.Tensor)
@@ -748,12 +779,22 @@ class LMGen(StreamingModule[_LMGenState]):
         if len(tensors) != state.cache.shape[0]:
             raise ValueError("streaming-sum update count must equal LMGen batch size")
         for index, tensor in enumerate(tensors):
-            if tensor is not None:
-                if tensor.ndim != 2 or tensor.shape[1] != self.lm_model.dim:
-                    raise ValueError("streaming-sum rows must be [frames, hidden]")
-                state.pending_streaming_sums[index] = tensor.to(
-                    device=self.lm_model.device, dtype=self.lm_model.dtype
-                )
+            if tensor is None or tensor.numel() == 0:
+                state.pending_streaming_sums[index] = None
+                continue
+            if tensor.ndim != 2 or tensor.shape[1] != self.lm_model.dim:
+                raise ValueError("streaming-sum rows must be [frames, hidden]")
+            state.pending_streaming_sums[index] = tensor.detach().to(
+                device=self.lm_model.device, dtype=self.lm_model.dtype
+            ).contiguous()
+
+    def clear_streaming_sum_tensors(self) -> None:
+        """Synchronously invalidate every queued control row."""
+        state = self._streaming_state
+        if state is None:
+            raise RuntimeError("streaming-sum clearing requires an active LMGen streaming session")
+        state.pending_streaming_sums = [None] * state.cache.shape[0]
+        state.condition_streaming_sum.zero_()
 
     def apply_pending_streaming_sum_condition(self) -> None:
         """Consume one queued evidence row for each batch slot before one live step."""
@@ -766,7 +807,7 @@ class LMGen(StreamingModule[_LMGenState]):
                 state.pending_streaming_sums[index] = pending[1:] if pending.shape[0] > 1 else None
             else:
                 state.condition_streaming_sum[index, 0].zero_()
-    
+
     @torch.no_grad()
     def prepare_step_input(self,
                            input_tokens: torch.Tensor=None,
@@ -893,7 +934,7 @@ class LMGen(StreamingModule[_LMGenState]):
         if return_embeddings:
             return output, embeddings
         return output
-    
+
     @torch.no_grad()
     def step_embeddings(self, embeddings: torch.Tensor):
         state = self._streaming_state
@@ -983,7 +1024,7 @@ class LMGen(StreamingModule[_LMGenState]):
                 return None, None
             else:
                 return None
-        
+
         B = state.cache.shape[0]
         CT = state.cache.shape[2]
         gen_delays_cuda = self.delays_cuda[: lm_model.dep_q + 1]

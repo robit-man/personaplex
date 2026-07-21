@@ -129,6 +129,90 @@ def admit_gpus(
     return report
 
 
+def admit_gpus_by_ratio(
+    *,
+    world_size: int,
+    min_usable_ratio: float,
+    reserve_ratio: float,
+    max_utilization_pct: int,
+    allowed_indices: Iterable[int] | None = None,
+) -> dict:
+    """Admit heterogeneous GPUs from discovered capacity rather than fixed GiB."""
+    if not 0 < min_usable_ratio <= 1:
+        raise ValueError("min_usable_ratio must be in (0, 1]")
+    if not 0 <= reserve_ratio < 1 or min_usable_ratio + reserve_ratio > 1:
+        raise ValueError("usable and reserve ratios cannot exceed total GPU memory")
+    allowed = set(allowed_indices) if allowed_indices is not None else None
+    decisions = []
+    candidates: list[GPU] = []
+    for gpu in query_gpus():
+        free_ratio = (gpu.memory_total_mib - gpu.memory_used_mib) / gpu.memory_total_mib
+        usable_ratio = free_ratio - reserve_ratio
+        reasons = []
+        if allowed is not None and gpu.index not in allowed:
+            reasons.append("not_in_allowlist")
+        if gpu.utilization_pct > max_utilization_pct:
+            reasons.append("utilization_above_limit")
+        if usable_ratio < min_usable_ratio:
+            reasons.append("insufficient_discovered_memory_ratio")
+        decisions.append(
+            {
+                **asdict(gpu),
+                "free_ratio": round(free_ratio, 4),
+                "reserve_ratio": reserve_ratio,
+                "usable_ratio_after_reserve": round(usable_ratio, 4),
+                "accepted": not reasons,
+                "reasons": reasons,
+            }
+        )
+        if not reasons:
+            candidates.append(gpu)
+    candidates.sort(
+        key=lambda gpu: (
+            gpu.utilization_pct,
+            -(gpu.memory_total_mib - gpu.memory_used_mib) / gpu.memory_total_mib,
+            gpu.index,
+        )
+    )
+    selected = candidates[:world_size]
+    return {
+        "schema_version": 2,
+        "kind": "personaplex-gpu-admission",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "request": {
+            "world_size": world_size,
+            "min_usable_ratio": min_usable_ratio,
+            "reserve_ratio": reserve_ratio,
+            "max_utilization_pct": max_utilization_pct,
+            "allowed_indices": sorted(allowed) if allowed is not None else None,
+        },
+        "gpus": decisions,
+        "selected_gpu_indices": [gpu.index for gpu in selected],
+        "selected_gpu_uuids": [gpu.uuid for gpu in selected],
+        "status": "admitted" if len(selected) == world_size else "refused",
+        "refusal": None
+        if len(selected) == world_size
+        else f"requested {world_size} GPU(s), but only {len(selected)} met discovered ratio limits",
+    }
+
+
+def host_memory_snapshot() -> dict[str, float | int]:
+    """Read Linux available-memory truth without assuming host capacity."""
+    values: dict[str, int] = {}
+    with Path("/proc/meminfo").open(encoding="ascii") as handle:
+        for line in handle:
+            key, raw = line.split(":", 1)
+            values[key] = int(raw.strip().split()[0]) * 1024
+    total = values["MemTotal"]
+    available = values["MemAvailable"]
+    used_ratio = (total - available) / total
+    return {
+        "total_bytes": total,
+        "available_bytes": available,
+        "used_ratio": used_ratio,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True)

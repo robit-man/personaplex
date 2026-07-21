@@ -16,10 +16,10 @@ Create a request revision whose `allowedVoicesManifest` equals the canonical JSO
 
 ```bash
 ./tools/run_diverse_synthesis_pre_generation.sh \
-  --request /srv/personaplex_workspace/ground_truth_runs/cascade-request-r2.json \
-  --output-root /srv/personaplex_workspace/ground_truth_runs/cascade-r2 \
+  --request ground_truth_finetuning/requests/personaplex_diverse_50x20x10.control-v4.json \
+  --output-root /srv/personaplex_workspace/ground_truth_runs/cascade-control-v4 \
   --voice-manifest /srv/voxrn_cache/chatterbox-reference-bank/manifest.json \
-  --voryn-plan /srv/personaplex_workspace/ground_truth_runs/personaplex-cascade-r2.v8.jsonl \
+  --voryn-plan /srv/personaplex_workspace/ground_truth_runs/personaplex-cascade-control-v4.v8.jsonl \
   --max-workers 3
 ```
 
@@ -31,4 +31,18 @@ The active plan is configured by `PERSONAPLEX_SYNTHESIS_PLAN_PATH` in `/srv/voxr
 
 ## Canonical 50x20x10 production inputs
 
-Use [`personaplex_diverse_seed_library.v1.json`](seed_catalogs/personaplex_diverse_seed_library.v1.json) and [`personaplex_diverse_50x20x10.v1.json`](requests/personaplex_diverse_50x20x10.v1.json), not the illustrative four-seed request. The production request is hash-bound to the 48-reference Chatterbox manifest at `/srv/voxrn_cache/chatterbox-reference-bank/manifest.json` and contains every required control source and causal pivot. Regenerate the request hash when either source material changes; do not hand-edit a hash or substitute an unapproved voice manifest.
+Use [`personaplex_diverse_seed_library.v1.json`](seed_catalogs/personaplex_diverse_seed_library.v1.json) and [`personaplex_diverse_50x20x10.control-v4.json`](requests/personaplex_diverse_50x20x10.control-v4.json), not the illustrative request or the older v1 production request. The v4 request is hash-bound to the 48-reference Chatterbox manifest at `/srv/voxrn_cache/chatterbox-reference-bank/manifest.json` and requires a typed control frame before every agent target, wrong-branch/stale/null negatives, mutable revisions, interruption invalidation, and model-selected termination. Regenerate the request hash when either source material changes; do not hand-edit a hash or substitute an unapproved voice manifest.
+
+## Causal audio construction rule
+
+For each selected two-branch group, render and encode the duplex prefix exactly
+once. Both branches must reference that immutable native prefix and may diverge
+only at the declared control pivot. Independently rendering two nominally equal
+prefixes is prohibited: it creates timing drift that can leak branch identity.
+The pair certifier must compare native tensors through `prefix_at` exactly and
+must quarantine a pair rather than weakening the identity check.
+
+The downstream renderer may patch a failed post-pivot turn or suffix in place,
+but it must never rerender an already admitted shared prefix. Admission remains
+first-attempt based for reliability accounting even when repair artifacts are
+retained for training provenance.

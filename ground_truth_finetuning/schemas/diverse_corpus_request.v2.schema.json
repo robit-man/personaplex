@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "personaplex.diverse-corpus-request.v2",
+  "title": "PersonaPlex diverse causal corpus request v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "strategyVersion", "requestId", "seedRevision", "seedCatalog",
+    "seedCatalogHash", "seedIdeas", "coverageTarget", "selectionPolicy",
+    "causalGroupContract", "semanticControl", "planner", "resourcePolicy",
+    "allowedVoicesManifest", "renderer", "asr", "allowedPhysicalCudaDevices",
+    "prohibitedContentPolicyRevision"
+  ],
+  "properties": {
+    "schema": {"const": "personaplex.diverse-corpus-request.v2"},
+    "strategyVersion": {"const": "semantic-control-v5"},
+    "requestId": {"type": "string", "minLength": 8, "maxLength": 160},
+    "seedRevision": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "seedCatalog": {"type": "string", "minLength": 1, "maxLength": 500},
+    "seedCatalogHash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "seedIdeas": {"type": "array", "minItems": 50, "maxItems": 50, "uniqueItems": true, "items": {"type": "string", "minLength": 8}},
+    "topicConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["include", "exclude"],
+      "properties": {
+        "include": {"type": "array", "minItems": 8, "uniqueItems": true, "items": {"type": "string", "minLength": 2}},
+        "exclude": {"type": "array", "minItems": 6, "uniqueItems": true, "items": {"type": "string", "minLength": 2}}
+      }
+    },
+    "coverageTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidateTopics", "scenariosPerTopic", "trajectorySeedsPerScenario", "primaryGroups", "reserveGroups", "selectedCounterfactualGroups", "branchesPerGroup"],
+      "properties": {
+        "candidateTopics": {"type": "integer", "minimum": 50, "maximum": 200},
+        "scenariosPerTopic": {"type": "integer", "minimum": 20, "maximum": 100},
+        "trajectorySeedsPerScenario": {"type": "integer", "minimum": 10, "maximum": 100},
+        "primaryGroups": {"type": "integer", "minimum": 250, "maximum": 100000},
+        "reserveGroups": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "selectedCounterfactualGroups": {"type": "integer", "minimum": 250, "maximum": 100000},
+        "branchesPerGroup": {"const": 4}
+      }
+    },
+    "selectionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "allLeavesEligible", "balanceAxes", "refillMode"],
+      "properties": {
+        "algorithm": {"const": "typed-balanced-all-leaves-v1"},
+        "allLeavesEligible": {"const": true},
+        "balanceAxes": {"const": ["causalAxis", "interventionFamily", "postureTransition", "evidenceSource", "duplexEventType", "outcomeRoute", "conversationLength", "style"]},
+        "refillMode": {"const": "typed_reserve_group_replacement"}
+      }
+    },
+    "causalGroupContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["siblingRoles", "interventionFamilies", "commonPrefix", "controlValueRequired", "surfaceRealizationsPerState"],
+      "properties": {
+        "siblingRoles": {"const": ["verified_positive", "verified_negative", "uncertain", "superseded"]},
+        "interventionFamilies": {"const": ["semantic", "delivery", "turn_taking"]},
+        "commonPrefix": {"const": "byte_identical_native_codes_through_pivot"},
+        "controlValueRequired": {"const": true},
+        "surfaceRealizationsPerState": {"type": "integer", "minimum": 1, "maximum": 8}
+      }
+    },
+    "semanticControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conditioning", "controlAvailability", "mutableRevisions", "targetLeakageProhibited", "requiredCausalAxes", "negativeControls", "termination", "sharedPrefixPolicy", "exactWordingFallback"],
+      "properties": {
+        "conditioning": {"const": "native_temporal_streaming_sum"},
+        "controlAvailability": {"const": "strictly_before_every_agent_target"},
+        "mutableRevisions": {"const": true},
+        "targetLeakageProhibited": {"const": true},
+        "requiredCausalAxes": {"type": "array", "minItems": 9, "uniqueItems": true, "items": {"type": "string", "minLength": 2}},
+        "negativeControls": {"const": ["paired_wrong_branch", "stale_revision", "null_control"]},
+        "termination": {"const": "model_selected_end_call_tool"},
+        "sharedPrefixPolicy": {"const": "native_code_identical_through_pivot"},
+        "exactWordingFallback": {"const": "validated_strict_renderer"}
+      }
+    },
+    "planner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "reasoning", "endpointSource", "parallelLanes"],
+      "properties": {
+        "model": {"type": "string", "minLength": 3, "maxLength": 160},
+        "reasoning": {"const": false},
+        "endpointSource": {"const": "personaplex_runtime_contract"},
+        "parallelLanes": {"type": "integer", "minimum": 1, "maximum": 3}
+      }
+    },
+    "resourcePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostMemoryMetric", "maxHostMemoryUsedFraction", "hardwareDiscovery", "cpuModelFallback"],
+      "properties": {
+        "hostMemoryMetric": {"const": "proc_meminfo_MemAvailable"},
+        "maxHostMemoryUsedFraction": {"type": "number", "exclusiveMinimum": 0, "maximum": 0.8},
+        "hardwareDiscovery": {"const": "runtime"},
+        "cpuModelFallback": {"const": false}
+      }
+    },
+    "allowedVoicesManifest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "renderer": {"const": "voicebox_chatterbox_turbo"},
+    "asr": {"const": "whisper"},
+    "allowedPhysicalCudaDevices": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": {"type": "integer", "minimum": 0}},
+    "requiredControlCoverage": {"type": "object"},
+    "requestedAdditions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 8}},
+    "prohibitedContentPolicyRevision": {"type": "string", "minLength": 1, "maxLength": 240}
+  }
+}

@@ -141,5 +141,8 @@ class MoshiStreamingSumBridge:
         """Consume zero rows after a barge-in, preventing stale evidence reuse."""
         if batch_size < 1:
             raise ValueError("batch_size must be positive")
-        zeros = [torch.empty((0, self.hidden_size), device=self.device) for _ in range(batch_size)]
-        self.lm_gen.update_streaming_sum_tensors(zeros)
+        clear = getattr(self.lm_gen, "clear_streaming_sum_tensors", None)
+        if callable(clear):
+            clear()
+            return
+        self.lm_gen.update_streaming_sum_tensors([None] * batch_size)

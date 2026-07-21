@@ -29,6 +29,10 @@ from ground_truth_finetuning.training.evidence_conditioning import (
     MoshiStreamingSumBridge,
     StreamingConditioningError,
 )
+from ground_truth_finetuning.training.control_encoding import (
+    FieldAwareControlSerializer,
+    pad_encoded_controls,
+)
 from ground_truth_finetuning.training.plan_serializer import PlanSerializer
 
 
@@ -277,6 +281,7 @@ class ControlAck:
     adapter_version: str | None = None
     prefix_build_ms: float | None = None
     prefix_prefill_ms: float | None = None
+    conditioning_mode: str | None = None
 
     def as_wire_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -296,6 +301,7 @@ class ControlAck:
             "adapterVersion": self.adapter_version,
             "prefixBuildMs": self.prefix_build_ms,
             "prefixPrefillMs": self.prefix_prefill_ms,
+            "conditioningMode": self.conditioning_mode,
         }
         data.update({key: value for key, value in optional.items() if value is not None})
         return data
@@ -319,9 +325,16 @@ class EvidenceCacheEntry:
 
 
 @dataclass(frozen=True)
+class ControlStreamCacheEntry:
+    artifact_hash: str
+    stream: torch.Tensor
+    build_ms: float
+
+
+@dataclass(frozen=True)
 class PendingGeneration:
     update: RuntimeControlUpdate
-    control_prefix: PrefixCacheEntry
+    control_prefix: PrefixCacheEntry | ControlStreamCacheEntry
     evidence_stream: EvidenceCacheEntry | None
 
 
@@ -355,6 +368,8 @@ class SemanticPrefixProvider:
         self.max_cached_frames = max_cached_frames
         self.serializer = PlanSerializer()
         self._cache: dict[str, PrefixCacheEntry] = {}
+        self.conditioning_mode = "virtual_prefix_v3"
+        self.unified_evidence = False
 
     @property
     def device(self) -> torch.device:
@@ -407,6 +422,113 @@ class SemanticPrefixProvider:
             # transformer's causal cache semantics and avoids a media emission.
             self.lm_gen.lm_model.forward_embeddings(entry.prefix[:, index : index + 1])
         return self._elapsed_ms(start)
+
+    def apply(self, entry: PrefixCacheEntry) -> float:
+        return self.prefill(entry)
+
+    def cancel(self) -> None:
+        return None
+
+
+class SemanticControlStreamProvider:
+    """Build and queue a unified v4 control stream without advancing LM cache."""
+
+    conditioning_mode = "temporal_stream_v4"
+    unified_evidence = True
+
+    def __init__(
+        self,
+        *,
+        lm_gen: Any,
+        adapter: torch.nn.Module,
+        tokenizer: Any,
+        adapter_version: str,
+        max_control_tokens: int = 512,
+        max_cached_frames: int = 32,
+    ) -> None:
+        if max_control_tokens < 32 or max_cached_frames < 1:
+            raise ValueError("v4 control limits are invalid")
+        self.lm_gen = lm_gen
+        self.adapter = adapter
+        self.tokenizer = tokenizer
+        self.adapter_version = adapter_version
+        self.max_control_tokens = max_control_tokens
+        self.max_cached_frames = max_cached_frames
+        self.serializer = FieldAwareControlSerializer()
+        self.bridge = MoshiStreamingSumBridge(lm_gen)
+        self._cache: dict[str, ControlStreamCacheEntry] = {}
+
+    @property
+    def device(self) -> torch.device:
+        return next(self.lm_gen.lm_model.parameters()).device
+
+    @property
+    def dtype(self) -> torch.dtype:
+        return next(self.lm_gen.lm_model.parameters()).dtype
+
+    def _elapsed_ms(self, begin: float) -> float:
+        if self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+        return (time.perf_counter() - begin) * 1000.0
+
+    @torch.inference_mode()
+    def build(
+        self,
+        frame: ControlTrainingFrame,
+        evidence: EvidenceTrainingFrame | None = None,
+        *,
+        expected_revision: int | None = None,
+    ) -> ControlStreamCacheEntry:
+        if evidence is not None:
+            assert_evidence_control_alignment(frame, evidence)
+        artifact_hash = frame.frame_hash
+        if evidence is not None:
+            artifact_hash = "sha256:" + hashlib.sha256(
+                f"{frame.frame_hash}:{evidence.evidence_hash}".encode("ascii")
+            ).hexdigest()
+        cached = self._cache.get(artifact_hash)
+        if cached is not None:
+            return cached
+        encoded = self.serializer.encode(
+            frame,
+            self.tokenizer,
+            int(self.lm_gen.lm_model.text_card),
+            evidence=evidence,
+            expected_revision=expected_revision,
+            max_tokens=self.max_control_tokens,
+        )
+        begin = time.perf_counter()
+        typed = pad_encoded_controls([encoded], device=self.device)
+        lexical = self.lm_gen.lm_model.text_emb(typed.token_ids)
+        stream = self.adapter(lexical, typed)
+        if (
+            stream.ndim != 3
+            or stream.shape[0] != 1
+            or stream.shape[1] < 1
+            or stream.shape[-1] != int(self.lm_gen.lm_model.dim)
+        ):
+            raise ControlProtocolError("v4 adapter emitted an invalid temporal control stream")
+        entry = ControlStreamCacheEntry(
+            artifact_hash=artifact_hash,
+            stream=stream.to(device=self.device, dtype=self.dtype).contiguous(),
+            build_ms=self._elapsed_ms(begin),
+        )
+        self._cache[artifact_hash] = entry
+        while len(self._cache) > self.max_cached_frames:
+            self._cache.pop(next(iter(self._cache)))
+        return entry
+
+    @torch.inference_mode()
+    def apply(self, entry: ControlStreamCacheEntry) -> float:
+        if not self.lm_gen.lm_model.is_streaming:
+            raise ControlProtocolError("PersonaPlex LM is not in streaming mode")
+        begin = time.perf_counter()
+        self.bridge.queue([entry.stream[0]])
+        return self._elapsed_ms(begin)
+
+    @torch.inference_mode()
+    def cancel(self) -> None:
+        self.bridge.cancel(1)
 
 
 class EvidenceStreamProvider:
@@ -545,6 +667,7 @@ class RuntimeControlSession:
             turn_id=turn_id,
             generation_id=self.generation_id,
             adapter_version=self.prefix_provider.adapter_version,
+            conditioning_mode=getattr(self.prefix_provider, "conditioning_mode", "unknown"),
             prefix_build_ms=build_ms,
             prefix_prefill_ms=prefill_ms,
             **artifact,
@@ -573,14 +696,8 @@ class RuntimeControlSession:
             self._statuses[prior.revision] = prior_ack
             acknowledgements.append(prior_ack)
             self.pending = None
-        try:
-            entry = self.prefix_provider.build(update.frame)
-        except (ControlProtocolError, RuntimeError, ValueError) as exc:
-            ack = self._ack(update, "prefix_build_failed", str(exc))
-            self._statuses[update.revision] = ack
-            acknowledgements.append(ack)
-            return acknowledgements
         evidence_entry: EvidenceCacheEntry | None = None
+        unified_evidence = bool(getattr(self.prefix_provider, "unified_evidence", False))
         if update.evidence_frame is not None:
             staged = self.staged_evidence
             if staged is None:
@@ -598,11 +715,30 @@ class RuntimeControlSession:
                 self._statuses[update.revision] = ack
                 acknowledgements.append(ack)
                 return acknowledgements
-            if self.evidence_provider is None:
+            if self.evidence_provider is None and not unified_evidence:
                 ack = self._ack(update, "rejected", "evidence_adapter_not_installed")
                 self._statuses[update.revision] = ack
                 acknowledgements.append(ack)
                 return acknowledgements
+            if not unified_evidence:
+                try:
+                    evidence_entry = self.evidence_provider.build(update.evidence_frame, update.frame)
+                except (ControlProtocolError, StreamingConditioningError, RuntimeError, ValueError) as exc:
+                    ack = self._ack(update, "prefix_build_failed", str(exc))
+                    self._statuses[update.revision] = ack
+                    acknowledgements.append(ack)
+                    return acknowledgements
+        elif self.staged_evidence is not None:
+            ack = self._ack(update, "rejected", "fresh_staged_evidence_must_be_bound_to_control_revision")
+            self._statuses[update.revision] = ack
+            acknowledgements.append(ack)
+            return acknowledgements
+        if (
+            not unified_evidence
+            and self.evidence_provider is not None
+            and bool(getattr(self.evidence_provider, "always_condition", False))
+            and evidence_entry is None
+        ):
             try:
                 evidence_entry = self.evidence_provider.build(update.evidence_frame, update.frame)
             except (ControlProtocolError, StreamingConditioningError, RuntimeError, ValueError) as exc:
@@ -610,14 +746,29 @@ class RuntimeControlSession:
                 self._statuses[update.revision] = ack
                 acknowledgements.append(ack)
                 return acknowledgements
-            self.staged_evidence = None
-        elif self.staged_evidence is not None:
-            ack = self._ack(update, "rejected", "fresh_staged_evidence_must_be_bound_to_control_revision")
+        try:
+            if unified_evidence:
+                entry = self.prefix_provider.build(
+                    update.frame,
+                    update.evidence_frame,
+                    expected_revision=update.revision,
+                )
+            else:
+                entry = self.prefix_provider.build(update.frame)
+        except (ControlProtocolError, StreamingConditioningError, RuntimeError, ValueError) as exc:
+            ack = self._ack(update, "prefix_build_failed", str(exc))
             self._statuses[update.revision] = ack
             acknowledgements.append(ack)
             return acknowledgements
+        if update.evidence_frame is not None:
+            self.staged_evidence = None
         self.pending = PendingGeneration(update, entry, evidence_entry)
-        queued = self._ack(update, "queued", "prefix_cached_waiting_for_caller_turn_boundary", build_ms=entry.build_ms)
+        queued = self._ack(
+            update,
+            "queued",
+            "conditioning_cached_waiting_for_caller_turn_boundary",
+            build_ms=entry.build_ms,
+        )
         self._statuses[update.revision] = queued
         acknowledgements.append(queued)
         return acknowledgements
@@ -703,7 +854,10 @@ class RuntimeControlSession:
             self._statuses[update.revision] = ack
             return ack
         try:
-            prefill_ms = self.prefix_provider.prefill(entry)
+            apply_condition = getattr(self.prefix_provider, "apply", None)
+            if not callable(apply_condition):
+                apply_condition = self.prefix_provider.prefill
+            prefill_ms = apply_condition(entry)
             if pending.evidence_stream is not None:
                 if self.evidence_provider is None:
                     raise ControlProtocolError("evidence adapter disappeared before generation boundary")
@@ -719,7 +873,15 @@ class RuntimeControlSession:
         self.active = update
         self.generation_id += 1
         self.render_allowed = True
-        ack = self._ack(update, "applied", "prefix_prefilled_at_caller_turn_boundary", turn_id=turn_id, prefill_ms=prefill_ms, build_ms=entry.build_ms)
+        mode = getattr(self.prefix_provider, "conditioning_mode", "unknown")
+        ack = self._ack(
+            update,
+            "applied",
+            f"{mode}_applied_at_caller_turn_boundary",
+            turn_id=turn_id,
+            prefill_ms=prefill_ms,
+            build_ms=entry.build_ms,
+        )
         self._statuses[update.revision] = ack
         return ack
 
@@ -727,6 +889,12 @@ class RuntimeControlSession:
         acknowledgements: list[ControlAck] = []
         self.generation_id += 1
         self.render_allowed = False
+        cancel_control = getattr(self.prefix_provider, "cancel", None)
+        if callable(cancel_control):
+            try:
+                cancel_control()
+            except (StreamingConditioningError, RuntimeError, ValueError):
+                pass
         if self.evidence_provider is not None:
             try:
                 self.evidence_provider.cancel()

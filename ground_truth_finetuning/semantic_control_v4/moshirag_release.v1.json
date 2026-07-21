@@ -1,0 +1,128 @@
+{
+  "schema": "personaplex.moshirag-release-manifest.v1",
+  "created_at": "2026-07-19T00:00:00Z",
+  "source_commit": "8c6dfc101b7871baa428424bcdc583b74fb561d9",
+  "source_repository": "https://github.com/kyutai-labs/moshi-rag",
+  "paper": "https://arxiv.org/abs/2604.12928",
+  "collection": "https://huggingface.co/collections/kyutai/moshirag-release",
+  "licenses": {
+    "source": [
+      "Apache-2.0",
+      "MIT"
+    ],
+    "models": [
+      "CC-BY-4.0"
+    ]
+  },
+  "artifacts": {
+    "moshika_rag_pytorch": {
+      "role": "research_reference_and_training_initialization",
+      "required": true,
+      "repo_id": "kyutai/moshika-rag-pytorch-bf16",
+      "revision": "7135a6e3c46abb66c2cd95cb04cbfcbe8376f83d",
+      "local_subdir": "huggingface/kyutai/moshika-rag-pytorch-bf16",
+      "allow_patterns": [
+        "README.md",
+        "config.json",
+        "model.safetensors",
+        "tokenizer-e351c8d8-checkpoint125.safetensors",
+        "tokenizer_spm_32k_3.model"
+      ],
+      "files": [
+        {
+          "path": "model.safetensors",
+          "size": 15409202784,
+          "sha256": "d584e4476b4feff1a0b0b452e9fe14696dd1319b09663997db4ebd4288933058"
+        },
+        {
+          "path": "tokenizer-e351c8d8-checkpoint125.safetensors",
+          "size": 384644900,
+          "sha256": "09b782f0629851a271227fb9d36db65c041790365f11bbe5d3d59369cf863f50"
+        },
+        {
+          "path": "tokenizer_spm_32k_3.model",
+          "size": 552778,
+          "sha256": "78d4336533ddc26f9acf7250d7fb83492152196c6ea4212c841df76933f18d2d"
+        }
+      ]
+    },
+    "moshika_base_pytorch": {
+      "role": "rag_delta_reference",
+      "required": true,
+      "repo_id": "kyutai/moshika-pytorch-bf16",
+      "revision": "a49141e28b3d9c947cf9aa5314431e1b11cbd2f5",
+      "local_subdir": "huggingface/kyutai/moshika-pytorch-bf16",
+      "allow_patterns": [
+        "README.md",
+        "model.safetensors",
+        "tokenizer-e351c8d8-checkpoint125.safetensors",
+        "tokenizer_spm_32k_3.model"
+      ],
+      "files": [
+        {
+          "path": "model.safetensors",
+          "size": 15375500136,
+          "sha256": "e0a5a1c79010680eb916adb940ee8567978c78902c5a6b743c79202e75858712"
+        },
+        {
+          "path": "tokenizer-e351c8d8-checkpoint125.safetensors",
+          "size": 384644900,
+          "sha256": "09b782f0629851a271227fb9d36db65c041790365f11bbe5d3d59369cf863f50"
+        },
+        {
+          "path": "tokenizer_spm_32k_3.model",
+          "size": 552778,
+          "sha256": "78d4336533ddc26f9acf7250d7fb83492152196c6ea4212c841df76933f18d2d"
+        }
+      ]
+    },
+    "arc4_encoder_llama": {
+      "role": "frozen_reference_encoder",
+      "required": true,
+      "repo_id": "kyutai/ARC4_Encoder_Llama",
+      "revision": "f27d986b193bfdff742d54412d3057b498ec8cc9",
+      "local_subdir": "huggingface/kyutai/ARC4_Encoder_Llama",
+      "allow_patterns": [
+        "README.md",
+        "model.safetensors"
+      ],
+      "files": [
+        {
+          "path": "model.safetensors",
+          "size": 12104403784,
+          "sha256": "e230b5afdafa6138adbaacf79b10995fc0c0d417ff735a2e55d3b7328277bc06"
+        }
+      ]
+    },
+    "moshika_rag_candle": {
+      "role": "production_runtime_reference",
+      "required": false,
+      "repo_id": "kyutai/moshika-rag-candle-bf16",
+      "revision": "26c8294761455c0aaafbadc6772c890fdc11f68f",
+      "local_subdir": "huggingface/kyutai/moshika-rag-candle-bf16",
+      "allow_patterns": [
+        "README.md",
+        "model.safetensors",
+        "tokenizer-e351c8d8-checkpoint125.safetensors",
+        "tokenizer_spm_32k_3.model"
+      ],
+      "files": [
+        {
+          "path": "model.safetensors",
+          "size": 16776994696,
+          "sha256": "45e6e06a3b64c9e4501c9b168ee7b7258de6e5d51404cf465f8bd7d6955dff6d"
+        },
+        {
+          "path": "tokenizer-e351c8d8-checkpoint125.safetensors",
+          "size": 384644900,
+          "sha256": "09b782f0629851a271227fb9d36db65c041790365f11bbe5d3d59369cf863f50"
+        },
+        {
+          "path": "tokenizer_spm_32k_3.model",
+          "size": 552778,
+          "sha256": "78d4336533ddc26f9acf7250d7fb83492152196c6ea4212c841df76933f18d2d"
+        }
+      ]
+    }
+  }
+}

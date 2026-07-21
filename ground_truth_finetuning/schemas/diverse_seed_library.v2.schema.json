@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "personaplex.diverse-seed-library.v2",
+  "title": "PersonaPlex causal diversity seed library v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "libraryId", "purpose", "seeds", "interactionRequirements"],
+  "properties": {
+    "schema": {"const": "personaplex.diverse-seed-library.v2"},
+    "libraryId": {"type": "string", "minLength": 8, "maxLength": 160},
+    "purpose": {"type": "string", "minLength": 40},
+    "seeds": {
+      "type": "array",
+      "minItems": 50,
+      "maxItems": 50,
+      "items": {"$ref": "#/$defs/seed"}
+    },
+    "interactionRequirements": {"$ref": "#/$defs/interactionRequirements"}
+  },
+  "$defs": {
+    "siblingValues": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verified_positive", "verified_negative", "uncertain", "superseded"],
+      "properties": {
+        "verified_positive": {"type": "string", "minLength": 2},
+        "verified_negative": {"type": "string", "minLength": 2},
+        "uncertain": {"type": "string", "minLength": 2},
+        "superseded": {"type": "string", "minLength": 2}
+      }
+    },
+    "affordance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "operatorId", "changedPath", "siblingValues"],
+      "properties": {
+        "family": {"enum": ["semantic", "delivery", "turn_taking"]},
+        "operatorId": {
+          "enum": [
+            "evidence_status_transition",
+            "next_goal_route_transition",
+            "interruption_recovery_transition"
+          ]
+        },
+        "changedPath": {
+          "enum": ["state.evidence.status", "plan.nextGoal", "turnTaking.eventType"]
+        },
+        "siblingValues": {"$ref": "#/$defs/siblingValues"}
+      }
+    },
+    "seed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "focus", "causalAffordances"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^S(0[1-9]|[1-4][0-9]|50)$"},
+        "title": {"type": "string", "minLength": 5},
+        "focus": {"type": "string", "minLength": 20},
+        "causalAffordances": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {"$ref": "#/$defs/affordance"},
+          "allOf": [
+            {"contains": {"type": "object", "required": ["family"], "properties": {"family": {"const": "semantic"}}}},
+            {"contains": {"type": "object", "required": ["family"], "properties": {"family": {"const": "delivery"}}}},
+            {"contains": {"type": "object", "required": ["family"], "properties": {"family": {"const": "turn_taking"}}}}
+          ]
+        }
+      }
+    },
+    "interactionRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mustCover", "mustVary", "controlFrameRule", "factorizationRule"],
+      "properties": {
+        "mustCover": {"type": "array", "minItems": 10, "uniqueItems": true, "items": {"type": "string", "minLength": 2}},
+        "mustVary": {"type": "array", "minItems": 8, "uniqueItems": true, "items": {"type": "string", "minLength": 2}},
+        "controlFrameRule": {"type": "string", "minLength": 80},
+        "factorizationRule": {"type": "string", "minLength": 80}
+      }
+    }
+  }
+}

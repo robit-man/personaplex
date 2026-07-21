@@ -4,7 +4,7 @@
   "title": "Diverse controlled synthesis cascade artifacts",
   "description": "Schemas for planning-only artifacts. Canonical response text and target audio are intentionally absent.",
   "$defs": {
-    "stringList": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1, "maxLength": 1000}},
+    "stringList": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
     "topicCard": {
       "type": "object",
       "additionalProperties": false,
@@ -13,7 +13,7 @@
         "schema": {"const": "personaplex.topic-card.v1"},
         "topicId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,119}$"},
         "seedRevision": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
-        "domain": {"type": "string", "minLength": 3, "maxLength": 240},
+        "domain": {"type": "string", "minLength": 3},
         "interactionModes": {"$ref": "#/$defs/stringList"},
         "registerRange": {"$ref": "#/$defs/stringList"},
         "safeStakes": {"$ref": "#/$defs/stringList"},
@@ -29,8 +29,8 @@
         "schema": {"const": "personaplex.scenario-contract.v1"},
         "scenarioId": {"type": "string", "pattern": "^[a-z][a-z0-9_:-]{2,159}$"},
         "topicId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,119}$"},
-        "mode": {"type": "string", "minLength": 3, "maxLength": 120},
-        "premise": {"type": "string", "minLength": 12, "maxLength": 1200},
+        "mode": {"type": "string", "minLength": 3},
+        "premise": {"type": "string", "minLength": 12},
         "participants": {"type": "array", "minItems": 2, "maxItems": 4, "items": {"type": "object", "additionalProperties": false, "required": ["role", "knowledge"], "properties": {"role": {"type": "string"}, "knowledge": {"type": "string"}}}},
         "startingState": {"type": "object", "additionalProperties": false, "required": ["knownFacts", "uncertainty", "policyConstraints"], "properties": {"knownFacts": {"$ref": "#/$defs/stringList"}, "uncertainty": {"$ref": "#/$defs/stringList"}, "policyConstraints": {"$ref": "#/$defs/stringList"}}},
         "interactionOpportunity": {"$ref": "#/$defs/stringList"},
@@ -49,15 +49,20 @@
         "trajectoryId": {"type": "string", "pattern": "^[a-z][a-z0-9_:-]{2,199}$"},
         "scenarioId": {"type": "string", "pattern": "^[a-z][a-z0-9_:-]{2,159}$"},
         "conversationLength": {"type": "object", "additionalProperties": false, "required": ["targetTurns", "min", "max"], "properties": {"targetTurns": {"type": "integer", "minimum": 4, "maximum": 48}, "min": {"type": "integer", "minimum": 2, "maximum": 48}, "max": {"type": "integer", "minimum": 4, "maximum": 48}}},
-        "pace": {"type": "string", "minLength": 3, "maxLength": 120},
-        "openingStyle": {"type": "string", "minLength": 3, "maxLength": 120},
-        "closingStyle": {"type": "string", "minLength": 3, "maxLength": 120},
+        "pace": {"type": "string", "minLength": 3},
+        "openingStyle": {"type": "string", "minLength": 3},
+        "closingStyle": {"type": "string", "minLength": 3},
         "voicePairPolicy": {"const": "distinct_approved_references"},
         "interactionArc": {"$ref": "#/$defs/stringList"},
         "duplexEvents": {"type": "array", "items": {"type": "object"}},
         "postureArc": {"$ref": "#/$defs/stringList"},
         "counterfactualPivotOrdinal": {"type": "integer", "minimum": 1, "maximum": 47},
-        "controlPhenomena": {"$ref": "#/$defs/stringList"}
+        "controlPhenomena": {"$ref": "#/$defs/stringList"},
+        "semanticStateArc": {"type": "array", "items": {"type": "object"}},
+        "controlRevisionSchedule": {"type": "array", "items": {"type": "object"}},
+        "terminationContract": {"type": "object"},
+        "negativeControlCoverage": {"$ref": "#/$defs/stringList"},
+        "causalAxis": {"type": "string", "minLength": 1}
       }
     },
     "pairSpec": {
@@ -70,7 +75,8 @@
         "trajectoryId": {"type": "string", "minLength": 3, "maxLength": 200},
         "pivotOrdinal": {"type": "integer", "minimum": 1, "maximum": 47},
         "commonContextHash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
-        "branches": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "object", "additionalProperties": false, "required": ["branchId", "controlDelta", "evidenceUpdate"], "properties": {"branchId": {"enum": ["available", "constrained"]}, "controlDelta": {"type": "object", "additionalProperties": false, "required": ["field", "from", "to"], "properties": {"field": {"type": "string"}, "from": {}, "to": {}}}, "evidenceUpdate": {"type": "object"}}}}
+        "sharedPrefixPolicy": {"const": "native_code_identical_through_pivot"},
+        "branches": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "object", "additionalProperties": false, "required": ["branchId", "controlDelta", "evidenceUpdate"], "properties": {"branchId": {"enum": ["available", "constrained"]}, "controlDelta": {"type": "object", "additionalProperties": false, "required": ["field", "from", "to"], "properties": {"field": {"type": "string"}, "from": {}, "to": {}}}, "evidenceUpdate": {"type": "object"}, "availabilityTiming": {"type": "object"}, "negativeControls": {"$ref": "#/$defs/stringList"}, "semanticAssertions": {"$ref": "#/$defs/stringList"}}}}
       }
     }
   }

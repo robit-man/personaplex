@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "personaplex.diverse-synthesis-cascade-artifacts.v2",
+  "title": "PersonaPlex v5 causal cascade artifact",
+  "description": "Strict planning artifacts. Target response text and target audio are forbidden from every model-visible planning object.",
+  "oneOf": [
+    {"$ref": "#/$defs/topicCard"},
+    {"$ref": "#/$defs/scenarioContract"},
+    {"$ref": "#/$defs/trajectorySeed"},
+    {"$ref": "#/$defs/siblingGroup"}
+  ],
+  "$defs": {
+    "stringList": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "jsonScalar": {"type": ["string", "number", "integer", "boolean", "null"]},
+    "affordance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["family", "operatorId", "changedPath"],
+      "properties": {
+        "family": {"enum": ["semantic", "delivery", "turn_taking"]},
+        "operatorId": {"type": "string", "minLength": 3, "maxLength": 160},
+        "changedPath": {"type": "string", "minLength": 3, "maxLength": 240}
+      }
+    },
+    "topicCard": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "topicId", "sourceSeedId", "seedRevision", "domain", "interactionModes", "registerRange", "safeStakes", "forbiddenPatterns", "diversityTags", "causalAffordances"],
+      "properties": {
+        "schema": {"const": "personaplex.topic-card.v2"},
+        "topicId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,119}$"},
+        "sourceSeedId": {"type": "string", "pattern": "^S(0[1-9]|[1-4][0-9]|50)$"},
+        "seedRevision": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "domain": {"type": "string", "minLength": 3},
+        "interactionModes": {"$ref": "#/$defs/stringList"},
+        "registerRange": {"$ref": "#/$defs/stringList"},
+        "safeStakes": {"$ref": "#/$defs/stringList"},
+        "forbiddenPatterns": {"$ref": "#/$defs/stringList"},
+        "diversityTags": {"$ref": "#/$defs/stringList"},
+        "causalAffordances": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/affordance"}}
+      }
+    },
+    "participant": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role", "knowledge"],
+      "properties": {"role": {"type": "string", "minLength": 2}, "knowledge": {"type": "string", "minLength": 3}}
+    },
+    "scenarioContract": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "scenarioId", "topicId", "mode", "premise", "participants", "startingState", "interactionOpportunity", "allowedToolClasses", "disallowedClaims", "scenarioOutcomeSpace", "requiredControlPhenomena"],
+      "properties": {
+        "schema": {"const": "personaplex.scenario-contract.v2"},
+        "scenarioId": {"type": "string", "pattern": "^[a-z][a-z0-9_:-]{2,159}$"},
+        "topicId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{2,119}$"},
+        "mode": {"type": "string", "minLength": 3},
+        "premise": {"type": "string", "minLength": 24},
+        "participants": {"type": "array", "minItems": 2, "maxItems": 4, "items": {"$ref": "#/$defs/participant"}},
+        "startingState": {
+          "type": "object", "additionalProperties": false,
+          "required": ["knownFacts", "uncertainty", "policyConstraints"],
+          "properties": {"knownFacts": {"$ref": "#/$defs/stringList"}, "uncertainty": {"$ref": "#/$defs/stringList"}, "policyConstraints": {"$ref": "#/$defs/stringList"}}
+        },
+        "interactionOpportunity": {"$ref": "#/$defs/stringList"},
+        "allowedToolClasses": {"$ref": "#/$defs/stringList"},
+        "disallowedClaims": {"$ref": "#/$defs/stringList"},
+        "scenarioOutcomeSpace": {"$ref": "#/$defs/stringList"},
+        "requiredControlPhenomena": {"$ref": "#/$defs/stringList"}
+      }
+    },
+    "duplexEvent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["eventType", "targetOrdinal", "offsetMs"],
+      "properties": {
+        "eventType": {"enum": ["completed_turn", "barge_in", "cancelled_generation", "repair_after_barge_in", "recovery", "brief_overlap", "backchannel"]},
+        "targetOrdinal": {"type": "integer", "minimum": 1, "maximum": 47},
+        "offsetMs": {"type": "integer", "minimum": -2000, "maximum": 30000},
+        "overlapMs": {"type": "integer", "minimum": 0, "maximum": 5000},
+        "cancelOutgoingAudio": {"type": "boolean"},
+        "invalidateGeneration": {"type": "boolean"}
+      }
+    },
+    "typedPivot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["field", "from", "to"],
+      "properties": {"field": {"type": "string", "minLength": 3, "maxLength": 240}, "from": {"$ref": "#/$defs/jsonScalar"}, "to": {"$ref": "#/$defs/jsonScalar"}}
+    },
+    "revision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["controlRevision", "targetOrdinal", "availableBeforeTarget", "source"],
+      "properties": {
+        "controlRevision": {"type": "integer", "minimum": 1},
+        "targetOrdinal": {"type": "integer", "minimum": 1, "maximum": 47},
+        "availableBeforeTarget": {"const": true},
+        "source": {"enum": ["asr_fact", "tool_result", "policy_decision", "caller_posture_change", "interruption", "handoff", "scenario_state", "state_reducer"]}
+      }
+    },
+    "trajectorySeed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "trajectoryId", "scenarioId", "conversationLength", "pace", "openingStyle", "closingStyle", "voicePairPolicy", "interactionArc", "duplexEvents", "postureArc", "counterfactualPivotOrdinal", "controlPhenomena", "causalAxis", "interventionFamily", "typedPivot", "postureTransition", "evidenceSource", "outcomeRoute", "semanticStateArc", "controlRevisionSchedule", "terminationContract", "negativeControlCoverage"],
+      "properties": {
+        "schema": {"const": "personaplex.trajectory-seed.v2"},
+        "trajectoryId": {"type": "string", "pattern": "^[a-z][a-z0-9_:-]{2,199}$"},
+        "scenarioId": {"type": "string", "pattern": "^[a-z][a-z0-9_:-]{2,159}$"},
+        "conversationLength": {"type": "object", "additionalProperties": false, "required": ["targetTurns", "min", "max"], "properties": {"targetTurns": {"type": "integer", "minimum": 4, "maximum": 48}, "min": {"type": "integer", "minimum": 4, "maximum": 48}, "max": {"type": "integer", "minimum": 4, "maximum": 48}}},
+        "pace": {"type": "string", "minLength": 3},
+        "openingStyle": {"type": "string", "minLength": 3},
+        "closingStyle": {"type": "string", "minLength": 3},
+        "voicePairPolicy": {"const": "distinct_approved_references"},
+        "interactionArc": {"$ref": "#/$defs/stringList"},
+        "duplexEvents": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/duplexEvent"}},
+        "postureArc": {"$ref": "#/$defs/stringList"},
+        "counterfactualPivotOrdinal": {"type": "integer", "minimum": 1, "maximum": 47},
+        "controlPhenomena": {"$ref": "#/$defs/stringList"},
+        "causalAxis": {"type": "string", "minLength": 3, "maxLength": 160},
+        "interventionFamily": {"enum": ["semantic", "delivery", "turn_taking"]},
+        "typedPivot": {"$ref": "#/$defs/typedPivot"},
+        "postureTransition": {"type": "object", "additionalProperties": false, "required": ["from", "to"], "properties": {"from": {"type": "string"}, "to": {"type": "string"}}},
+        "evidenceSource": {"type": "string", "minLength": 3, "maxLength": 160},
+        "outcomeRoute": {"type": "string", "minLength": 3},
+        "semanticStateArc": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+        "controlRevisionSchedule": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/revision"}},
+        "terminationContract": {"type": "object", "additionalProperties": false, "required": ["decisionSource", "action", "deterministicPhrase"], "properties": {"decisionSource": {"const": "model"}, "action": {"const": "end_call_tool"}, "deterministicPhrase": {"const": false}}},
+        "negativeControlCoverage": {"const": ["paired_wrong_branch", "stale_revision", "null_control"]}
+      }
+    },
+    "branch": {
+      "type": "object", "additionalProperties": false,
+      "required": ["branchId", "controlDelta", "controlValue", "evidenceUpdate", "availabilityTiming", "negativeControls", "semanticAssertions"],
+      "properties": {
+        "branchId": {"enum": ["verified_positive", "verified_negative", "uncertain", "superseded"]},
+        "controlDelta": {"$ref": "#/$defs/typedPivot"},
+        "controlValue": {"$ref": "#/$defs/jsonScalar"},
+        "evidenceUpdate": {"type": "object"},
+        "availabilityTiming": {"type": "object", "additionalProperties": false, "required": ["effectiveFrom", "availableBeforeTarget", "controlRevision"], "properties": {"effectiveFrom": {"const": "next_agent_turn"}, "availableBeforeTarget": {"const": true}, "controlRevision": {"type": "integer", "minimum": 1}}},
+        "negativeControls": {"const": ["paired_wrong_branch", "stale_revision", "null_control"]},
+        "semanticAssertions": {"$ref": "#/$defs/stringList"}
+      }
+    },
+    "siblingGroup": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "groupId", "trajectoryId", "pivotOrdinal", "commonContextHash", "sharedPrefixPolicy", "interventionFamily", "typedPivot", "branches"],
+      "properties": {
+        "schema": {"const": "personaplex.counterfactual-sibling-group-spec.v2"},
+        "groupId": {"type": "string", "minLength": 8, "maxLength": 240},
+        "trajectoryId": {"type": "string", "minLength": 3, "maxLength": 200},
+        "pivotOrdinal": {"type": "integer", "minimum": 1, "maximum": 47},
+        "commonContextHash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "sharedPrefixPolicy": {"const": "native_code_identical_through_pivot"},
+        "interventionFamily": {"enum": ["semantic", "delivery", "turn_taking"]},
+        "typedPivot": {"$ref": "#/$defs/typedPivot"},
+        "branches": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/branch"}}
+      }
+    }
+  }
+}

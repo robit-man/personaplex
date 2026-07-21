@@ -33,6 +33,11 @@ from moshi.models import LMGen, loaders
 
 from ground_truth_finetuning.training.semantic_prefix import SemanticPrefixAdapter
 from ground_truth_finetuning.training.evidence_conditioning import EvidenceStreamAdapter
+from personaplex_control.moshirag_reference import Arc4ReferenceProvider
+from ground_truth_finetuning.training.control_stream import (
+    ControlStreamConfig,
+    SemanticControlStreamAdapter,
+)
 
 from .runtime import (
     CONTROL_MESSAGE_IN,
@@ -43,6 +48,7 @@ from .runtime import (
     RuntimeControlUpdate,
     RuntimeEvidenceUpdate,
     EvidenceStreamProvider,
+    SemanticControlStreamProvider,
     SemanticPrefixProvider,
 )
 
@@ -88,10 +94,17 @@ class ControlledServerState:
         other_mimi: Any,
         tokenizer: Any,
         lm: Any,
-        adapter: SemanticPrefixAdapter,
+        adapter: torch.nn.Module | None,
         adapter_version: str,
+        conditioning_mode: str,
         evidence_adapter: EvidenceStreamAdapter | None,
         evidence_adapter_version: str | None,
+        moshirag_conditioner_url: str | None,
+        moshirag_arc4_adapter_checkpoint: Path | None,
+        moshirag_primary_control: bool,
+        model_revision: str,
+        moshirag_conditioner_timeout_seconds: float,
+        moshirag_max_reference_frames: int,
         device: torch.device,
         voice_prompt_dir: Path,
         prefill_deadline_ms: float,
@@ -112,14 +125,55 @@ class ControlledServerState:
             device=device,
             frame_rate=mimi.frame_rate,
         )
-        self.provider = SemanticPrefixProvider(
-            lm_gen=self.lm_gen,
-            adapter=adapter.eval(),
-            tokenizer=tokenizer,
-            adapter_version=adapter_version,
-        )
-        self.evidence_provider = (
-            EvidenceStreamProvider(
+        if conditioning_mode == "arc4_primary_temporal_stream_v4_field_slots":
+            if moshirag_conditioner_url is None or moshirag_arc4_adapter_checkpoint is None:
+                raise ValueError("ARC-4 primary control requires conditioner and checkpoint")
+            self.provider = Arc4ReferenceProvider(
+                lm_gen=self.lm_gen,
+                conditioner_url=moshirag_conditioner_url,
+                adapter_checkpoint=moshirag_arc4_adapter_checkpoint,
+                expected_model_revision=model_revision,
+                expected_control_adapter_sha256=None,
+                primary_control=True,
+                timeout_seconds=moshirag_conditioner_timeout_seconds,
+                max_reference_frames=moshirag_max_reference_frames,
+            )
+        elif conditioning_mode == "temporal_stream_v4":
+            if adapter is None:
+                raise ValueError("temporal_stream_v4 requires an adapter")
+            self.provider = SemanticControlStreamProvider(
+                lm_gen=self.lm_gen,
+                adapter=adapter.eval(),
+                tokenizer=tokenizer,
+                adapter_version=adapter_version,
+                max_control_tokens=int(adapter.config.max_tokens),
+            )
+        elif conditioning_mode == "virtual_prefix_v3":
+            if adapter is None:
+                raise ValueError("virtual_prefix_v3 requires an adapter")
+            self.provider = SemanticPrefixProvider(
+                lm_gen=self.lm_gen,
+                adapter=adapter.eval(),
+                tokenizer=tokenizer,
+                adapter_version=adapter_version,
+            )
+        else:
+            raise ValueError(f"unsupported conditioning mode: {conditioning_mode}")
+        if moshirag_conditioner_url is not None and not moshirag_primary_control:
+            if moshirag_arc4_adapter_checkpoint is None:
+                raise ValueError("trained ARC-4 adapter checkpoint is required")
+            self.evidence_provider = Arc4ReferenceProvider(
+                lm_gen=self.lm_gen,
+                conditioner_url=moshirag_conditioner_url,
+                adapter_checkpoint=moshirag_arc4_adapter_checkpoint,
+                expected_model_revision=model_revision,
+                expected_control_adapter_sha256=adapter_version,
+                timeout_seconds=moshirag_conditioner_timeout_seconds,
+                max_reference_frames=moshirag_max_reference_frames,
+            )
+        else:
+            self.evidence_provider = (
+                EvidenceStreamProvider(
                 lm_gen=self.lm_gen,
                 adapter=evidence_adapter.eval(),
                 tokenizer=tokenizer,
@@ -127,7 +181,7 @@ class ControlledServerState:
             )
             if evidence_adapter is not None
             else None
-        )
+            )
         self.lock = asyncio.Lock()
         self.mimi.streaming_forever(1)
         self.other_mimi.streaming_forever(1)
@@ -341,6 +395,22 @@ def _load_adapter(path: Path, lm: Any, device: torch.device, prefix_frames: int)
     return adapter.eval(), _sha256(path), payload
 
 
+def _load_control_stream_adapter(
+    path: Path, lm: Any, device: torch.device
+) -> tuple[SemanticControlStreamAdapter, str, dict[str, Any]]:
+    payload = _load_checkpoint(path)
+    state = payload.get("adapter_state_dict")
+    raw_config = payload.get("adapter_config")
+    if payload.get("schema_version") != 4 or not isinstance(state, dict) or not isinstance(raw_config, dict):
+        raise ValueError("v4 checkpoint must contain schema_version, adapter_state_dict, and adapter_config")
+    config = ControlStreamConfig.from_mapping(raw_config)
+    adapter = SemanticControlStreamAdapter(
+        lm_hidden_size=int(lm.dim), config=config
+    ).to(device=device, dtype=torch.float32)
+    adapter.load_state_dict(state, strict=True)
+    return adapter.eval(), _sha256(path), payload
+
+
 def _load_evidence_adapter(path: Path, lm: Any, device: torch.device, stream_frames: int) -> tuple[EvidenceStreamAdapter, str, dict[str, Any]]:
     payload = _load_checkpoint(path)
     state = payload.get("evidence_adapter_state_dict") if isinstance(payload, dict) else None
@@ -390,6 +460,18 @@ def _validate_evidence_compatibility(
         raise ValueError("installed Moshi weights do not match the native model contract")
 
 
+def _validate_control_stream_compatibility(
+    *,
+    payload: dict[str, Any],
+    model_contract: dict[str, Any],
+    moshi_weight: Path,
+) -> None:
+    if payload.get("model_revision") != model_contract["model_revision"]:
+        raise ValueError("v4 control checkpoint model revision does not match the native model contract")
+    if _sha256(moshi_weight) != model_contract["moshi_weights_sha256"]:
+        raise ValueError("installed Moshi weights do not match the native model contract")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
@@ -397,8 +479,15 @@ def main() -> None:
     parser.add_argument("--moshi-weight", required=True, type=Path)
     parser.add_argument("--mimi-weight", required=True, type=Path)
     parser.add_argument("--tokenizer", required=True, type=Path)
-    parser.add_argument("--adapter-checkpoint", required=True, type=Path)
+    adapter_group = parser.add_mutually_exclusive_group(required=False)
+    adapter_group.add_argument("--control-stream-checkpoint", type=Path)
+    adapter_group.add_argument("--adapter-checkpoint", type=Path)
     parser.add_argument("--evidence-adapter-checkpoint", type=Path)
+    parser.add_argument("--moshirag-conditioner-url")
+    parser.add_argument("--moshirag-arc4-adapter-checkpoint", type=Path)
+    parser.add_argument("--moshirag-primary-control", action="store_true")
+    parser.add_argument("--moshirag-conditioner-timeout-seconds", type=float, default=2.0)
+    parser.add_argument("--moshirag-max-reference-frames", type=int, default=96)
     parser.add_argument("--model-contract", type=Path, help="required when installing a trained evidence adapter")
     parser.add_argument("--voice-prompt-dir", required=True, type=Path)
     parser.add_argument("--device", default="cuda:0")
@@ -411,12 +500,35 @@ def main() -> None:
         raise SystemExit("controlled PersonaPlex server requires CUDA")
     if not torch.cuda.is_available():
         raise SystemExit("CUDA is unavailable")
-    required_paths = [args.moshi_weight, args.mimi_weight, args.tokenizer, args.adapter_checkpoint, args.voice_prompt_dir]
+    selected_adapter_path = args.control_stream_checkpoint or args.adapter_checkpoint
+    required_paths = [args.moshi_weight, args.mimi_weight, args.tokenizer, args.voice_prompt_dir]
+    if selected_adapter_path is not None:
+        required_paths.append(selected_adapter_path)
+    if args.moshirag_primary_control and selected_adapter_path is not None:
+        raise SystemExit("ARC-4 primary control must not load a legacy control adapter")
+    if not args.moshirag_primary_control and selected_adapter_path is None:
+        raise SystemExit("a legacy adapter is required unless --moshirag-primary-control is selected")
+    if args.evidence_adapter_checkpoint is not None and args.moshirag_conditioner_url is not None:
+        raise SystemExit("choose either the provisional evidence adapter or upstream ARC-4, not both")
+    if args.control_stream_checkpoint is not None and (
+        args.evidence_adapter_checkpoint is not None or args.moshirag_conditioner_url is not None
+    ):
+        raise SystemExit("v4 control-stream checkpoints already unify evidence; a separate evidence path is invalid")
+    if (args.moshirag_conditioner_url is None) != (args.moshirag_arc4_adapter_checkpoint is None):
+        raise SystemExit("--moshirag-conditioner-url and --moshirag-arc4-adapter-checkpoint are required together")
+    if args.control_stream_checkpoint is not None and args.model_contract is None:
+        raise SystemExit("--model-contract is required with --control-stream-checkpoint")
+    if args.control_stream_checkpoint is not None:
+        required_paths.append(args.model_contract)
     if args.evidence_adapter_checkpoint is not None:
         required_paths.append(args.evidence_adapter_checkpoint)
         if args.model_contract is None:
             raise SystemExit("--model-contract is required with --evidence-adapter-checkpoint")
         required_paths.append(args.model_contract)
+    if args.moshirag_conditioner_url is not None and args.model_contract is None:
+        raise SystemExit("--model-contract is required with --moshirag-conditioner-url")
+    if args.moshirag_arc4_adapter_checkpoint is not None:
+        required_paths.append(args.moshirag_arc4_adapter_checkpoint)
     for path in required_paths:
         if not path.exists():
             raise SystemExit(f"required path does not exist: {path}")
@@ -427,7 +539,29 @@ def main() -> None:
     lm = loaders.get_moshi_lm(args.moshi_weight, device=device)
     lm.eval()
     tokenizer = sentencepiece.SentencePieceProcessor(str(args.tokenizer))
-    adapter, adapter_version, control_payload = _load_adapter(args.adapter_checkpoint, lm, device, args.prefix_frames)
+    adapter = None
+    adapter_version = ""
+    control_payload = None
+    if args.moshirag_primary_control:
+        model_contract = _load_model_contract(args.model_contract)
+        if _sha256(args.moshi_weight) != model_contract["moshi_weights_sha256"]:
+            raise SystemExit("ARC-4 primary PersonaPlex weights do not match model contract")
+        conditioning_mode = "arc4_primary_temporal_stream_v4_field_slots"
+    elif args.control_stream_checkpoint is not None:
+        adapter, adapter_version, control_payload = _load_control_stream_adapter(
+            args.control_stream_checkpoint, lm, device
+        )
+        _validate_control_stream_compatibility(
+            payload=control_payload,
+            model_contract=_load_model_contract(args.model_contract),
+            moshi_weight=args.moshi_weight,
+        )
+        conditioning_mode = "temporal_stream_v4"
+    else:
+        adapter, adapter_version, control_payload = _load_adapter(
+            args.adapter_checkpoint, lm, device, args.prefix_frames
+        )
+        conditioning_mode = "virtual_prefix_v3"
     evidence_adapter: EvidenceStreamAdapter | None = None
     evidence_adapter_version: str | None = None
     if args.evidence_adapter_checkpoint is not None:
@@ -445,6 +579,7 @@ def main() -> None:
             moshi_weight=args.moshi_weight,
             evidence_stream_frames=args.evidence_stream_frames,
         )
+    model_contract = _load_model_contract(args.model_contract) if args.model_contract is not None else None
     state = ControlledServerState(
         mimi=mimi,
         other_mimi=other_mimi,
@@ -452,8 +587,15 @@ def main() -> None:
         lm=lm,
         adapter=adapter,
         adapter_version=adapter_version,
+        conditioning_mode=conditioning_mode,
         evidence_adapter=evidence_adapter,
         evidence_adapter_version=evidence_adapter_version,
+        moshirag_conditioner_url=args.moshirag_conditioner_url,
+        moshirag_arc4_adapter_checkpoint=args.moshirag_arc4_adapter_checkpoint,
+        moshirag_primary_control=args.moshirag_primary_control,
+        model_revision=(model_contract or {}).get("model_revision", ""),
+        moshirag_conditioner_timeout_seconds=args.moshirag_conditioner_timeout_seconds,
+        moshirag_max_reference_frames=args.moshirag_max_reference_frames,
         device=device,
         voice_prompt_dir=args.voice_prompt_dir,
         prefill_deadline_ms=args.prefill_deadline_ms,
@@ -468,3 +610,7 @@ def main() -> None:
 if __name__ == "__main__":
     with torch.inference_mode():
         main()
+    if args.moshirag_primary_control and args.moshirag_conditioner_url is None:
+        raise SystemExit("--moshirag-primary-control requires the ARC-4 conditioner and checkpoint")
+    if args.moshirag_primary_control and (args.evidence_adapter_checkpoint or args.control_stream_checkpoint):
+        raise SystemExit("ARC-4 primary control already unifies evidence and cannot be combined")

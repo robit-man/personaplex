@@ -1,0 +1,61 @@
+{
+  "schema": "personaplex.diverse-corpus-request.v1",
+  "strategyVersion": "semantic-control-v4",
+  "requestId": "personaplex-diverse-50x20x10-control-v4-20260719",
+  "seedRevision": "sha256:f2f39fb9165bb4d2e31d0a74848590ab62756b3bcd56848ea324f33edb461e18",
+  "seedCatalog": "ground_truth_finetuning/seed_catalogs/personaplex_diverse_seed_library.v1.json",
+  "seedIdeas": [
+    "everyday relationship repair and boundary negotiation",
+    "neighbors, shared spaces, and practical compromise",
+    "family, friendship, caregiving, and life transitions",
+    "pets, home maintenance, household organization, and utilities",
+    "food, travel, transit, mobility, vehicles, and local discovery",
+    "personal technology, software projects, remote work, and maker projects",
+    "education, tutoring, language learning, research, and fact checking",
+    "creative collaboration, books, media, arts, recreation, sports, and hobbies",
+    "workplace coordination, career development, small business support, and marketplaces",
+    "community groups, libraries, museums, nonprofits, events, civic information, and neutral polling",
+    "consumer purchases, warranties, housing, budgeting administration, insurance coordination, and accessibility",
+    "wellness administration, school administration, preparedness, conservation, gardening, and casual conversation"
+  ],
+  "topicConstraints": {
+    "include": ["casual", "service", "technical", "education", "community", "creative", "administrative", "research"],
+    "exclude": ["identity verification", "political persuasion", "unconsented impersonation", "financial or medical advice", "contact data", "company scripts", "placeholder names"]
+  },
+  "coverageTarget": {
+    "candidateTopics": 50,
+    "scenariosPerTopic": 20,
+    "trajectorySeedsPerScenario": 10,
+    "selectedCounterfactualGroups": 500,
+    "branchesPerGroup": 2
+  },
+  "allowedVoicesManifest": "sha256:17a2ce19e8320958b32537e91a8cd6c5b745532237e30e3a5827fe102acc4827",
+  "renderer": "voicebox_chatterbox_turbo",
+  "asr": "whisper",
+  "allowedPhysicalCudaDevices": [0, 1, 2],
+  "requiredControlCoverage": {
+    "stateSources": ["asr_fact", "tool_result", "policy_decision", "caller_posture_change", "interruption", "handoff"],
+    "causalPivots": ["fact_change", "tool_result_change", "policy_constraint_change", "caller_posture_change", "next_goal_change", "interruption_invalidation"],
+    "targetLeakageProhibited": true,
+    "requireControlForAllAgentTargets": true,
+    "requireNaturalModelSelectedEndCall": true
+  },
+  "semanticControl": {
+    "conditioning": "gated_temporal_streaming_sum",
+    "controlAvailability": "before_every_agent_target",
+    "mutableRevisions": true,
+    "targetLeakageProhibited": true,
+    "requiredCausalAxes": ["fact_change", "tool_result_change", "policy_constraint_change", "caller_posture_change", "next_goal_change", "interruption_invalidation", "uncertainty_resolution", "handoff_route_change", "termination_authorization_change"],
+    "negativeControls": ["paired_wrong_branch", "stale_revision", "null_control"],
+    "termination": "model_selected_end_call_tool",
+    "sharedPrefixPolicy": "native_code_identical_through_pivot"
+  },
+  "requestedAdditions": [
+    "all fifty generated topic domains represented",
+    "every agent target has causal control available before speech",
+    "real interruption cutoffs, cancellation, and repair",
+    "counterfactual branch audio shares native history through the pivot",
+    "no repeated introductions, placeholders, company scripts, or deterministic goodbye loops"
+  ],
+  "prohibitedContentPolicyRevision": "personaplex-safe-synthesis-v1"
+}

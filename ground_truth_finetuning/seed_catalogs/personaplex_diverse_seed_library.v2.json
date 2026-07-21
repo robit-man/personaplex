@@ -1,0 +1,2035 @@
+{
+  "schema": "personaplex.diverse-seed-library.v2",
+  "libraryId": "personaplex-call-diversity-50-causal-v2",
+  "purpose": "Fifty non-identifying conversation domains for a factorized PersonaPlex semantic-control corpus. Every domain must yield twenty distinct premises and ten eligible trajectories while reusing the same three causal operators across unrelated topics so held-out evaluation measures learned control rather than scenario memorization.",
+  "seeds": [
+    {
+      "id": "S01",
+      "title": "Everyday relationship repair",
+      "focus": "apologies, boundaries, misunderstandings, and gradual trust repair",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "Neighbors and shared spaces",
+      "focus": "noise, packages, maintenance, favors, and practical compromises",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Moving and settling in",
+      "focus": "local discovery, utilities, belongings, routines, and social adjustment",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Family logistics",
+      "focus": "visits, caregiving coordination, celebrations, and changing plans",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "title": "Friendship and social plans",
+      "focus": "invitations, cancellations, reconnection, group coordination, and tact",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "title": "Pets and animal care",
+      "focus": "appointments, behavior, supplies, boarding, and reassurance",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "title": "Home repair and maintenance",
+      "focus": "diagnosis, estimates, scheduling, alternatives, and follow-through",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S08",
+      "title": "Household organization",
+      "focus": "chores, shared budgets, routines, lost items, and practical decisions",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S09",
+      "title": "Food, cooking, and local dining",
+      "focus": "recipes, dietary preferences, reservations, delivery issues, and feedback",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S10",
+      "title": "Travel planning and disruptions",
+      "focus": "itineraries, weather changes, accessibility, missed connections, and recovery",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "title": "Public transit and commuting",
+      "focus": "route changes, rider feedback, timing, accessibility, and alternatives",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "title": "Bicycles, walking, and local mobility",
+      "focus": "repairs, route safety, borrowing, shared rides, and timing",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S13",
+      "title": "Vehicle ownership and service",
+      "focus": "maintenance explanations, shop updates, alternatives, and cost uncertainty",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S14",
+      "title": "Personal technology support",
+      "focus": "device setup, account recovery without credentials, troubleshooting, and handoff",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "title": "Software project handoff",
+      "focus": "tradeoffs, blockers, bug triage, ownership transfer, and clarifying questions",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S16",
+      "title": "Creative collaboration",
+      "focus": "feedback, revisions, deadlines, ownership, and respectful disagreement",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S17",
+      "title": "Education and tutoring",
+      "focus": "study plans, assignment confusion, practice, feedback, and encouragement",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S18",
+      "title": "Career development",
+      "focus": "interviews, portfolio feedback, mentoring, networking, and role transitions",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S19",
+      "title": "Workplace coordination",
+      "focus": "priorities, staffing, meeting changes, escalation, and concise status updates",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S20",
+      "title": "Small business customer service",
+      "focus": "orders, returns, repairs, expectations, service recovery, and follow-up",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S21",
+      "title": "Community organizations",
+      "focus": "volunteers, events, resources, scheduling, and collaborative problem solving",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S22",
+      "title": "Libraries, museums, and local culture",
+      "focus": "programs, reservations, accessibility, memberships, and recommendations",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S23",
+      "title": "Recreation and hobbies",
+      "focus": "classes, clubs, equipment, lessons, practice, and friendly coaching",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S24",
+      "title": "Sports and fitness routines",
+      "focus": "training plans, group logistics, setbacks, motivation, and recovery planning",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S25",
+      "title": "Arts, media, and entertainment",
+      "focus": "recommendations, event planning, creative opinions, access needs, and scheduling",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S26",
+      "title": "Books, writing, and reading groups",
+      "focus": "recommendations, edits, publishing logistics, discussion, and constructive critique",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S27",
+      "title": "Language learning and translation help",
+      "focus": "practice, cultural nuance, lesson scheduling, clarification, and confidence",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S28",
+      "title": "Research and fact checking",
+      "focus": "uncertainty, source comparison, corrections, evidence gaps, and next steps",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S29",
+      "title": "Science and maker projects",
+      "focus": "experiments, equipment, safety boundaries, troubleshooting, and documentation",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S30",
+      "title": "Gardening and outdoor projects",
+      "focus": "seasonal planning, supplies, pests, weather, shared work, and advice",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S31",
+      "title": "Environmental and conservation volunteering",
+      "focus": "cleanup planning, observations, constraints, safety, and follow-up",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S32",
+      "title": "Housing and tenant communication",
+      "focus": "maintenance requests, shared expectations, documentation, options, and escalation",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S33",
+      "title": "Consumer purchases and warranties",
+      "focus": "comparisons, defects, exchanges, repair status, and evidence-based choices",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S34",
+      "title": "Banking-adjacent budgeting support",
+      "focus": "non-sensitive budgeting, billing confusion, payment timing, and referrals without financial advice",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S35",
+      "title": "Insurance-adjacent service coordination",
+      "focus": "documents, repair coordination, status updates, uncertainty, and handoff without coverage advice",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S36",
+      "title": "Health and wellness administration",
+      "focus": "appointment logistics, general wellness routines, accessibility, and referral without diagnosis or treatment",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S37",
+      "title": "Childcare and school administration",
+      "focus": "schedules, supplies, pickup changes, accommodations, and respectful clarification",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S38",
+      "title": "Accessibility and assistive services",
+      "focus": "accommodations, device support, service timing, communication preferences, and escalation",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S39",
+      "title": "Emergency preparedness without active crisis",
+      "focus": "plans, supplies, check-ins, weather preparation, and calm boundaries",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S40",
+      "title": "Local events and venue coordination",
+      "focus": "tickets, accessibility, vendor questions, timing changes, and recovery from mix-ups",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S41",
+      "title": "Market research and neutral polling",
+      "focus": "consent-based feedback, survey reluctance, preferences, clarification, and graceful opt-out",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S42",
+      "title": "News and media literacy discussion",
+      "focus": "uncertainty, source quality, corrections, differing interpretations, and de-escalation without persuasion",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S43",
+      "title": "Personal finance planning conversations",
+      "focus": "goals, tradeoffs, reminders, uncertainty, and referral to qualified advice without recommendations",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S44",
+      "title": "Nonprofit donor and member support",
+      "focus": "event questions, receipt logistics, preferences, no-pressure follow-up, and opt-out",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S45",
+      "title": "Online marketplace coordination",
+      "focus": "condition questions, pickup timing, negotiation, misunderstandings, and safe alternatives",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S46",
+      "title": "Remote work and collaboration tools",
+      "focus": "availability, handoff, meeting issues, coordination, and interruption recovery",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S47",
+      "title": "Home energy and utilities",
+      "focus": "outages, usage questions, technician windows, conservation, and status uncertainty",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S48",
+      "title": "Civic services and public information",
+      "focus": "permits, facilities, service requests, eligibility uncertainty, and non-partisan routing",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S49",
+      "title": "Life transitions and routine changes",
+      "focus": "new routines, retirement, caregiving changes, grief-sensitive support, and practical next steps",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S50",
+      "title": "Casual open-ended conversation",
+      "focus": "shared interests, observations, playful repair, changing topics, and natural short calls",
+      "causalAffordances": [
+        {
+          "family": "semantic",
+          "operatorId": "evidence_status_transition",
+          "changedPath": "state.evidence.status",
+          "siblingValues": {
+            "verified_positive": "verified and actionable",
+            "verified_negative": "verified false or unavailable",
+            "uncertain": "not yet verified",
+            "superseded": "replaced by a newer revision"
+          }
+        },
+        {
+          "family": "delivery",
+          "operatorId": "next_goal_route_transition",
+          "changedPath": "plan.nextGoal",
+          "siblingValues": {
+            "verified_positive": "proceed with supported resolution",
+            "verified_negative": "decline unsupported resolution and offer valid alternatives",
+            "uncertain": "clarify or verify before committing",
+            "superseded": "abandon stale goal and follow the newer route"
+          }
+        },
+        {
+          "family": "turn_taking",
+          "operatorId": "interruption_recovery_transition",
+          "changedPath": "turnTaking.eventType",
+          "siblingValues": {
+            "verified_positive": "complete the current turn",
+            "verified_negative": "stop the invalid response",
+            "uncertain": "wait or use a safe backchannel",
+            "superseded": "repair after cancellation using the acknowledged revision"
+          }
+        }
+      ]
+    }
+  ],
+  "interactionRequirements": {
+    "mustCover": [
+      "cooperation",
+      "conditional_compliance",
+      "skepticism",
+      "resistance",
+      "refusal",
+      "clarification",
+      "repair",
+      "handoff",
+      "barge_in",
+      "recovery",
+      "model_selected_end_call"
+    ],
+    "mustVary": [
+      "opening_style",
+      "closing_style",
+      "turn_count",
+      "response_length",
+      "caller_posture",
+      "agent_warmth",
+      "agent_assertiveness",
+      "overlap_timing",
+      "pause_timing"
+    ],
+    "controlFrameRule": "Every agent target receives a compact declarative control frame before its first supervised frame. The frame contains causal state, evidence status, next goal, constraints, posture, delivery style, revision, and turn-taking state, but never target transcript, target audio, a target hash, or wording that reconstructs the label.",
+    "factorizationRule": "The semantic, delivery, and turn-taking operators must repeat across many unrelated premises and across all dataset splits. Four siblings share byte-identical native history through the pivot and differ by one typed control value; composite interventions are rejected rather than certified by a widened token budget."
+  }
+}

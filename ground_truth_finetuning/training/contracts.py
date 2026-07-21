@@ -114,9 +114,9 @@ class StreamLayout:
             raise ContractError("native delayed path currently requires the text stream at index 0")
         audio_start = int(lm_model.audio_offset)
         audio_end = audio_start + int(lm_model.dep_q)
-        for stream_index in self.agent_audio_stream_indices + self.caller_audio_stream_indices:
+        for stream_index in self.agent_audio_stream_indices:
             if not audio_start <= stream_index < audio_end:
-                raise ContractError("audio stream lies outside the native depformer range")
+                raise ContractError("agent audio stream lies outside the native depformer range")
 
     def agent_audio_output_indices(self, lm_model: object) -> tuple[int, ...]:
         self.validate_for_model(lm_model)

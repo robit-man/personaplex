@@ -13,7 +13,7 @@ from ground_truth_finetuning.tools.encode_native_adapter_tensors import (
     require_codec_artifacts,
 )
 from ground_truth_finetuning.tools.certify_controlled_native_corpus import split_coverage
-from ground_truth_finetuning.training.contracts import canonical_json
+from ground_truth_finetuning.training.contracts import StreamLayout, canonical_json
 
 
 def contract() -> dict[str, object]:
@@ -43,6 +43,16 @@ def contract() -> dict[str, object]:
 
 
 class NativeCodecContractTests(unittest.TestCase):
+    def test_asymmetric_depformer_accepts_caller_condition_streams(self) -> None:
+        class AsymmetricDuplexModel:
+            num_codebooks = 17
+            audio_offset = 1
+            dep_q = 8
+
+        layout = StreamLayout.from_mapping(contract()["stream_layout"])
+        layout.validate_for_model(AsymmetricDuplexModel())
+        self.assertEqual(layout.agent_audio_output_indices(AsymmetricDuplexModel()), tuple(range(8)))
+
     def test_only_train_rows_are_not_adapter_training_coverage(self) -> None:
         counts, failures = split_coverage([{"split": "train"}, {"split": "train"}])
         self.assertEqual(counts, {"train": 2, "validation": 0, "test": 0})

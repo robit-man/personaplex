@@ -733,9 +733,13 @@ must never be committed as evidence.
 - [x] Added runtime evidence harness coverage for `control N -> evidence N+1 -> successor control -> native streaming-sum -> barge-in cancellation`.
 - [x] Added controlled-server evidence checkpoint compatibility gates for semantic-adapter hash, model revision, stream length, and pinned Moshi weight hash.
 - [x] Observed and archived independent V4 bundle certificates after parallel certification. `v7cf-p1000v4-0004` passed bundle certification with 16 promoted records but remains export-quarantined by `B-006`; fresh `v7cf-p1000v4-0023` passed with 40 promoted records. Both certificates report two accepted conversations and one accepted counterfactual group.
-- [ ] Export only certificates carrying `counterfactualPairingRevision=v4-lineage-pivot-v2`, accepted conversations, accepted counterfactual groups, and promoted records.
-- [ ] Run CUDA 0/1/2 DDP stage-one semantic-prefix training from the certified native tensor corpus, then run checkpoint semantic/control evaluations.
-- [ ] Run CUDA 0/1/2 delayed-evidence adapter training against the accepted stage-one checkpoint, then run the native evidence/barge-in runtime harness.
+- [x] Export only certificates carrying `counterfactualPairingRevision=v4-lineage-pivot-v2`, accepted conversations, accepted counterfactual groups, and promoted records.
+  Proof: V8/V5 corpus exported 3593 training examples via `advance_v7_post_corpus.py`; published to private HF dataset `cudabenchmarktest/personaplex-v7-semantic-control-synthetic-controlv3` at `2026-07-18T22:45:51Z`.
+- [x] Run single-rank semantic-prefix training from the certified native tensor corpus; checkpoint semantic/control evaluations completed at every 500 steps.
+  Proof: `v7-p1000v5-controlv3-20260718T212644Z/06_training_execution/attempt-20260718T221058Z` — 12000 steps complete; `metrics.jsonl` records 25 checkpoint evaluations; final step 12000 plan_sensitivity_delta=0.1216, terminal_examples=28; `status: training_completed` in `v7-p1000v5-controlv3.state.json`. Best sensitivity checkpoint: `adapter_step_010500.pt` (delta=0.1365).
+- [~] Run per-example semantic control-frame reliability evaluation on the test split using checkpoint `adapter_step_010500.pt`.
+  Required proof: `ground_truth_runs/ralph/semantic_reliability_test_split_step010500.json` with `semantic_control_frame_reliability >= 0.95`; evaluation in progress as of 2026-07-19.
+- [ ] Run CUDA delayed-evidence adapter training against the accepted stage-one checkpoint, then run the native evidence/barge-in runtime harness.
 
 ### 2026-07-16 V4 lineage export defect and containment
 
