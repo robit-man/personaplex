@@ -45,13 +45,16 @@ from ground_truth_finetuning.training.strict_schema_transport import (
 TOPICS_PER_CORPUS = 50
 BLUEPRINTS_PER_TOPIC = 20
 MAX_WORKERS = 3
-BLUEPRINT_MAX_OUTPUT_TOKENS = 4096
+BLUEPRINT_INITIAL_OUTPUT_TOKENS = 4096
+BLUEPRINT_MAX_OUTPUT_TOKENS = 12288
 SCENARIO_MAX_OUTPUT_TOKENS = 4096
 BLUEPRINT_JUDGE_MAX_OUTPUT_TOKENS = 2048
 BLUEPRINT_CLAIM_VERIFIER_MAX_OUTPUT_TOKENS = 64
 TAXONOMY_MAX_OUTPUT_TOKENS = 8192
-MAX_LIVE_OUTPUT_TOKENS = TAXONOMY_MAX_OUTPUT_TOKENS
-BLUEPRINT_PROTOCOL_VERSION = "joint-blueprint-adaptive-feedback-v6-taxonomy-bound-lengths"
+MAX_LIVE_OUTPUT_TOKENS = max(TAXONOMY_MAX_OUTPUT_TOKENS, BLUEPRINT_MAX_OUTPUT_TOKENS)
+BLUEPRINT_PROTOCOL_VERSION = (
+    "joint-blueprint-adaptive-feedback-v7-natural-boundaries-adaptive-token-budget"
+)
 TAXONOMY_PROTOCOL_VERSION = "twenty-branch-anchor-taxonomy-v5-semantic-boundaries"
 BLUEPRINT_JUDGE_PROTOCOL_VERSION = (
     "typed-whole-blueprint-findings-v5-model-identity-adjudication"
@@ -1984,7 +1987,9 @@ def _blueprint_context(
         "outputContract": {
             "strictJsonSchema": True,
             "oneJointCall": True,
+            "initialLiveOutputTokens": BLUEPRINT_INITIAL_OUTPUT_TOKENS,
             "maxLiveOutputTokens": BLUEPRINT_MAX_OUTPUT_TOKENS,
+            "tokenBudgetEscalation": "double_only_after_authenticated_finish_reason_length",
             "targetFieldsForbidden": True,
         },
     }
@@ -2274,6 +2279,7 @@ def generate_topic_blueprints(
 
     context = _blueprint_context(request, topic, scenario_ids, taxonomy_checkpoint)
     failures: list[str] = []
+    output_token_budget = BLUEPRINT_INITIAL_OUTPUT_TOKENS
     for attempt in range(1, max_attempts + 1):
         attempt_context = dict(context)
         if failures:
@@ -2292,7 +2298,7 @@ def generate_topic_blueprints(
                 schema=schema,
                 instructions=STAGE_P_SYSTEM,
                 context=attempt_context,
-                max_output_tokens=BLUEPRINT_MAX_OUTPUT_TOKENS,
+                max_output_tokens=output_token_budget,
             )
             blueprints = decode_blueprint_response(
                 response, topic, scenario_ids, taxonomy_anchors
@@ -2334,6 +2340,12 @@ def generate_topic_blueprints(
             return checkpoint
         except ModelTransportUnavailable:
             raise
+        except TruncatedModelOutput as error:
+            failures.append(f"attempt {attempt}: {type(error).__name__}: {error}")
+            output_token_budget = min(
+                BLUEPRINT_MAX_OUTPUT_TOKENS,
+                max(output_token_budget + 1, output_token_budget * 2),
+            )
         except Exception as error:
             failures.append(f"attempt {attempt}: {type(error).__name__}: {error}")
     raise ScenarioBlueprintError(

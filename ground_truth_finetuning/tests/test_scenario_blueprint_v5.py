@@ -9,6 +9,7 @@ import pytest
 
 from ground_truth_finetuning.training.scenario_blueprint_v5 import (
     BLUEPRINT_JUDGE_DIMENSIONS,
+    BLUEPRINT_INITIAL_OUTPUT_TOKENS,
     BLUEPRINT_MAX_OUTPUT_TOKENS,
     BLUEPRINTS_PER_TOPIC,
     CONTROL_OPERATORS,
@@ -409,7 +410,9 @@ def test_stage_p_response_budget_and_tight_fields_are_sent_to_authentic_call(tmp
         scenario_id: card["interactionModes"][ordinal % len(card["interactionModes"])]
         for ordinal, scenario_id in enumerate(scenario_ids_for_topic(card["topicId"]))
     }
-    assert call["max_output_tokens"] == BLUEPRINT_MAX_OUTPUT_TOKENS == 4096
+    assert call["max_output_tokens"] == BLUEPRINT_INITIAL_OUTPUT_TOKENS == 4096
+    assert BLUEPRINT_MAX_OUTPUT_TOKENS == 12288
+    assert call["context"]["outputContract"]["maxLiveOutputTokens"] == 12288
     assert call["schema"]["required"] == list(scenario_ids_for_topic(card["topicId"]))
     max_lengths = []
 
@@ -531,6 +534,7 @@ def test_malformed_and_truncated_stage_p_outputs_retry_the_exact_topic(tmp_path:
     assert "retryFeedback" not in planner.calls[1]["context"]
     assert "malformed" in planner.calls[2]["context"]["retryFeedback"]["previousDefect"]
     assert "TruncatedModelOutput" in planner.calls[3]["context"]["retryFeedback"]["previousDefect"]
+    assert [call["max_output_tokens"] for call in planner.calls[1:]] == [4096, 4096, 8192]
     assert checkpoint["topicId"] == card["topicId"]
 
 
